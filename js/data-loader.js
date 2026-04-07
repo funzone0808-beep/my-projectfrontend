@@ -14,10 +14,11 @@ window.APP_STATE = {
 // const PUBLIC_API_BASE = `${API_BASE}/public`;
 
 const FRONTEND_DEFAULT_HOTEL_SLUG =
-  window.APP_RUNTIME_CONFIG?.DEFAULT_HOTEL_SLUG || "hotel-sai-raj";
+  process.env.REACT_APP_DEFAULT_HOTEL_SLUG || "hotel-sai-raj";
 
 const API_BASE =
-  window.APP_RUNTIME_CONFIG?.API_BASE_URL || "http://localhost:5000/api";
+  process.env.REACT_APP_API_BASE_URL || "http://localhost:5000/api";
+
 
 const TENANT_API_BASE = `${API_BASE}/tenant`;
 const PUBLIC_API_BASE = `${API_BASE}/public`;
