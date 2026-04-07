@@ -11,7 +11,7 @@
 // For Production Phase 
 
 window.APP_RUNTIME_CONFIG = {
-  API_BASE_URL: "https://my-project-rq8b.onrender.com/api",
-  BACKEND_BASE_URL: "https://my-project-rq8b.onrender.com",
-  DEFAULT_HOTEL_SLUG: "hotel-sai-raj"
+  API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
+  BACKEND_BASE_URL: process.env.REACT_APP_BACKEND_BASE_URL,
+  DEFAULT_HOTEL_SLUG: process.env.REACT_APP_DEFAULT_HOTEL_SLUG
 };
