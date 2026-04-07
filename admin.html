@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard</title>
+  <!-- <link rel="stylesheet" href="css/style.css" /> -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+    #hotelFormSection,
+#menuFormSection,
+#profileFormSection {
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+form {
+  overflow: visible;
+}
+
+body {
+  overflow-y: auto;
+  cursor: auto;
+}
+
+    .admin-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .admin-header {
+      margin-bottom: 24px;
+    }
+
+    .admin-title {
+      font-size: 32px;
+      margin: 0 0 8px;
+    }
+
+    .admin-sub {
+      color: #bbb;
+      margin: 0;
+    }
+
+    .admin-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin: 24px 0;
+    }
+
+    .admin-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .admin-tab {
+      background: #222;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+
+    .admin-tab.active {
+      background: #c9a84c;
+      color: #111;
+      border-color: #c9a84c;
+    }
+
+    .admin-select {
+      background: #222;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 10px 12px;
+      border-radius: 8px;
+    }
+
+    .admin-section {
+      display: grid;
+      gap: 16px;
+    }
+
+    .admin-card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .admin-card h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .admin-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .admin-meta {
+      color: #bbb;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .admin-row {
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #333;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .status-select {
+      background: #222;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 8px 10px;
+      border-radius: 8px;
+    }
+
+    .status-btn {
+      background: #c9a84c;
+      color: #111;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .status-btn:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+
+    .empty-state {
+      color: #bbb;
+      padding: 24px 0;
+    }
+
+    .loading-state {
+      color: #ddd;
+      padding: 24px 0;
+    }
+
+    pre.json-box {
+      background: #101010;
+      color: #ddd;
+      padding: 12px;
+      border-radius: 8px;
+      overflow: auto;
+      font-size: 12px;
+    }
+
+    #hotelFormSection,
+    #menuFormSection {
+      position: relative;
+      overflow: visible;
+      margin-top: 20px;
+      isolation: isolate;
+    }
+
+    #hotelFormSection form,
+    #menuFormSection form {
+      position: relative;
+      z-index: 1;
+    }
+
+    #hotelFormSection input:not([type="hidden"]),
+    #menuFormSection input:not([type="hidden"]) {
+      width: 100%;
+      box-sizing: border-box;
+      background: #161616;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 12px 14px;
+      border-radius: 8px;
+      caret-color: #fff;
+      cursor: text;
+      position: relative;
+      z-index: 2;
+      -webkit-text-fill-color: #fff;
+    }
+
+    #hotelFormSection input:not([type="hidden"]):focus,
+    #menuFormSection input:not([type="hidden"]):focus {
+      outline: none;
+      border-color: #c9a84c;
+      box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.2);
+      caret-color: #fff;
+    }
+
+    #hotelFormSection label,
+    #menuFormSection label {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: #ddd;
+      cursor: pointer;
+    }
+
+    #hotelFormSection input[type="checkbox"],
+    #menuFormSection input[type="checkbox"] {
+      width: auto;
+      accent-color: #c9a84c;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="adminLoginWrap" class="admin-wrap" style="max-width: 520px; display:none;">
+  <header class="admin-header">
+    <h1 class="admin-title">Admin Login</h1>
+    <p class="admin-sub">Sign in to access your operator dashboard.</p>
+  </header>
+
+  <section class="admin-card">
+    <form id="adminLoginForm" class="admin-grid">
+      <input id="adminEmailInput" type="email" placeholder="Email" required />
+      <input id="adminPasswordInput" type="password" placeholder="Password" required />
+      <button type="submit" class="status-btn">Login</button>
+    </form>
+  </section>
+</div>
+
+  <div class="admin-wrap" id="adminDashboardWrap" style="display:none;">
+    <header class="admin-header">
+      <h1 class="admin-title">Admin Dashboard</h1>
+      <p class="admin-sub">Manage all hotel orders, reservations, inquiries, and hotels from one place.</p>
+    </header>
+
+    <div class="admin-toolbar">
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="orders">Orders</button>
+        <button class="admin-tab" data-tab="reservations">Reservations</button>
+        <button class="admin-tab" data-tab="inquiries">Inquiries</button>
+        <button class="admin-tab" data-tab="hotels">Hotels</button>
+        <button type="button" id="openHotelFormBtn" class="admin-tab">Hotel Form</button>
+        <button type="button" id="openMenuFormBtn" class="admin-tab">Menu Form</button>
+        <button type="button" id="openProfileFormBtn" class="admin-tab">Profile Form</button>
+        <button id="openUploadSectionBtn" class="admin-tab">Upload Image</button>
+        <button class="admin-tab" data-tab="menu-items">Menu Items</button>
+        
+      </div>
+
+      <select id="hotelFilter" class="admin-select">
+        <option value="">All Hotels</option>
+      </select>
+      <button id="adminLogoutBtn" class="admin-tab">Logout</button>
+    </div>
+
+    <main id="adminContent" class="admin-section">
+      <p class="loading-state">Loading dashboard...</p>
+    </main>
+
+    <section id="hotelFormSection" class="admin-card" style="display:none;">
+      <h2>Create / Update Hotel</h2>
+      <form id="hotelForm" class="admin-grid">
+        <input id="hotelId" name="id" type="hidden" />
+
+        <input id="hotelSlugInput" name="slug" placeholder="Slug (hotel-sai-raj)" required />
+        <input id="hotelNameInput" name="hotelName" placeholder="Hotel Name" required />
+        <input id="hotelWhatsappInput" name="whatsapp" type="tel" placeholder="WhatsApp Number" required />
+        <input id="hotelUpiInput" name="upi" placeholder="UPI ID" required />
+        <input id="hotelGstInput" name="gst" type="number" placeholder="GST %" required />
+        <input id="hotelPrimaryDomainInput" name="primaryDomain" placeholder="Primary Domain" />
+        <input id="hotelSubdomainInput" name="subdomain" placeholder="Subdomain" />
+
+        <label>
+          <input id="hotelIsActiveInput" name="isActive" type="checkbox" checked />
+          Active
+        </label>
+
+        <button type="submit" class="status-btn">Save Hotel</button>
+      </form>
+    </section>
+
+    <section id="menuFormSection" class="admin-card" style="display:none;">
+      <h2>Create / Update Menu Item</h2>
+      <form id="menuItemForm" class="admin-grid">
+        <input id="menuItemDbId" name="id" type="hidden" />
+
+        <input id="menuHotelSlugInput" name="hotelSlug" placeholder="Hotel Slug" required />
+        <input id="menuCategoryInput" name="category" placeholder="Category (starters)" required />
+        <input id="menuItemIdInput" name="itemId" placeholder="Item ID (starter_1)" required />
+        <input id="menuNameInput" name="name" placeholder="Item Name" required />
+        <input id="menuDescriptionInput" name="description" placeholder="Description" />
+        <input id="menuPriceInput" name="price" type="number" placeholder="Price" required />
+        <input id="menuImageInput" name="image" type="url" placeholder="Image URL or path" />
+        <input id="menuAltInput" name="alt" placeholder="Alt text" />
+        <input id="menuBadgeInput" name="badge" placeholder="Badge" />
+        <input id="menuTagInput" name="tag" placeholder="Tag" />
+        <input id="menuSortOrderInput" name="sortOrder" type="number" placeholder="Sort Order" />
+
+        <label>
+          <input id="menuIsAvailableInput" name="isAvailable" type="checkbox" checked />
+          Available
+        </label>
+
+        <button type="submit" class="status-btn">Save Menu Item</button>
+      </form>
+    </section>
+
+    <section id="profileFormSection" class="admin-card" style="display:none; margin-top: 20px;">
+  <h2>Create / Update Hotel Profile</h2>
+
+  <form id="profileForm" class="admin-grid">
+    <input id="profileHotelSlugInput" placeholder="Hotel Slug (hotel-sai-raj)" />
+    <input id="profileHotelNameInput" placeholder="Hotel Name" />
+    <input id="profileTaglineInput" placeholder="Tagline" />
+    <input id="profileWhatsappInput" placeholder="Owner WhatsApp Number" />
+    <input id="profileUpiInput" placeholder="Owner UPI ID" />
+    <input id="profileGstInput" type="number" placeholder="GST %" />
+
+    <h3>Branding</h3>
+    <input id="profileBrandPrimaryInput" placeholder="Logo Primary Text" />
+    <input id="profileBrandSecondaryInput" placeholder="Logo Secondary Text" />
+
+    <h3>Hero</h3>
+    <input id="profileHeroLine1Input" placeholder="Hero Title Line 1" />
+    <input id="profileHeroLine2Input" placeholder="Hero Title Line 2" />
+    <input id="profileHeroLine3Input" placeholder="Hero Title Line 3" />
+    <textarea id="profileHeroStatsInput" rows="6" placeholder='Hero Stats JSON, e.g. [{"label":"Since","value":"1999"}]'></textarea>
+
+    <h3>About</h3>
+    <input id="profileAboutEyebrowInput" placeholder="About Eyebrow" />
+    <input id="profileAboutTitleInput" placeholder="About Title" />
+    <textarea id="profileAboutParagraphsInput" rows="8" placeholder='About Paragraphs JSON, e.g. ["Para 1","Para 2"]'></textarea>
+
+    <h3>Features</h3>
+    <textarea id="profileFeaturesInput" rows="8" placeholder='Features JSON array'></textarea>
+
+    <h3>Events</h3>
+    <input id="profileEventsEyebrowInput" placeholder="Events Eyebrow" />
+    <input id="profileEventsTitleInput" placeholder="Events Title" />
+    <input id="profileEventsSubtitleInput" placeholder="Events Subtitle" />
+    <textarea id="profileEventsCardsInput" rows="8" placeholder='Events Cards JSON array'></textarea>
+
+    <h3>Reservation</h3>
+    <input id="profileReservationEyebrowInput" placeholder="Reservation Eyebrow" />
+    <input id="profileReservationTitleInput" placeholder="Reservation Title" />
+    <input id="profileReservationSubtitleInput" placeholder="Reservation Subtitle" />
+
+    <h3>Contact Section</h3>
+    <input id="profileContactEyebrowInput" placeholder="Contact Eyebrow" />
+    <input id="profileContactTitleInput" placeholder="Contact Title" />
+    <input id="profileContactSubtitleInput" placeholder="Contact Subtitle" />
+
+    <h3>Contact Details</h3>
+    <input id="profilePhoneInput" placeholder="Phone" />
+    <input id="profileEmailInput" placeholder="Email" />
+    <input id="profileAddressInput" placeholder="Address" />
+
+    <h3>Location</h3>
+    <input id="profileMapEmbedInput" placeholder="Map Embed URL" />
+    <input id="profileMapLinkInput" placeholder="Map Link" />
+
+    <h3>Footer</h3>
+    <textarea id="profileFooterDescriptionInput" rows="4" placeholder="Footer Description"></textarea>
+
+    <h3>Social</h3>
+    <input id="profileInstagramInput" placeholder="Instagram URL" />
+    <input id="profileFacebookInput" placeholder="Facebook URL" />
+    <input id="profileYoutubeInput" placeholder="YouTube URL" />
+
+    <button type="submit" class="status-btn">Save Hotel Profile</button>
+  </form>
+</section>
+
+<section id="uploadSection" class="admin-card" style="display:none; margin-top: 20px;">
+  <h2>Upload Image</h2>
+
+  <form id="uploadForm" class="admin-grid">
+    <input id="uploadHotelSlugInput" placeholder="Hotel Slug (hotel-sai-raj)" />
+    <input id="uploadFolderInput" placeholder="Folder (menu, branding, gallery)" value="menu" />
+    <input id="uploadTargetFieldInput" placeholder="Target Field ID to fill (optional)" />
+    <input id="uploadFileInput" type="file" accept="image/*" />
+    <button type="submit" class="status-btn">Upload Image</button>
+  </form>
+
+  <div id="uploadResult" style="margin-top: 16px;"></div>
+<div style="margin-top: 16px;">
+  <input id="deleteStoragePathInput" placeholder="Storage path to delete, e.g. hotel-sai-raj/menu/123-file.jpg" />
+  <button id="deleteUploadedFileBtn" class="status-btn" type="button">Delete Uploaded File</button>
+</div>
+
+</section>
+
+  </div>
+  
+<script src="js/app-config.js"></script>
+  <script src="js/admin.js" defer></script>
+</body>
+</html>

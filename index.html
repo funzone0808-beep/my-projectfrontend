@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HSR — Fine Dining Experience</title>
+  <meta name="description" content="sai raj is a premium fine dining restaurant offering an immersive culinary journey with the finest ingredients, world-class chefs, and an unforgettable atmosphere." />
+  <meta name="keywords" content="fine dining, luxury restaurant, gourmet food, reservation, private events" />
+  <meta property="og:title" content="HRS — Fine Dining Experience" />
+  <meta property="og:description" content="An immersive culinary journey with the finest ingredients and world-class chefs." />
+  <meta property="og:type" content="website" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Jost:wght@200;300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+
+  <!-- GSAP + ScrollTrigger -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.4/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.4/dist/ScrollTrigger.min.js"></script>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ─── CUSTOM CURSOR ─────────────────────────────────── -->
+  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- ─── LOADING SCREEN ───────────────────────────────── -->
+  <div id="loader" class="loader" role="status" aria-label="Loading">
+    <div class="loader-inner">
+      <div class="loader-logo">
+        <span class="loader-a">H</span><span class="loader-urum">SR</span>
+      </div>
+      <div class="loader-bar-wrap"><div class="loader-bar" id="loaderBar"></div></div>
+      <p class="loader-tagline">Preparing your experience…</p>
+    </div>
+  </div>
+
+  <!-- ─── SCROLL PROGRESS ──────────────────────────────── -->
+  <div class="scroll-progress" id="scrollProgress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+
+  <!-- ─── NAVBAR ─────────────────────────────────────────── -->
+  <nav class="navbar" id="navbar" role="navigation" aria-label="Main navigation">
+    <div class="nav-container">
+     <a href="#hero" class="nav-logo" aria-label="Hotel home">
+      <span class="logo-a" id="brandPrimary">Hotel</span><span class="logo-urum" id="brandSecondary"> Sai Raj</span>
+     </a>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-links" id="navLinks" role="list">
+        <li><a href="#about" class="nav-link">About</a></li>
+        <li><a href="#menu" class="nav-link">Menu</a></li>
+        <li><a href="#gallery" class="nav-link">Gallery</a></li>
+        <li><a href="#events" class="nav-link">Events</a></li>
+        <li><a href="#testimonials" class="nav-link">Reviews</a></li>
+        <li><a href="#contact" class="nav-link">Contact</a></li>
+        <li><a href="#reservation" class="nav-link nav-cta">Reserve a Table</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ─── HERO SECTION ─────────────────────────────────── -->
+  <section id="hero" class="hero" aria-label="Hero">
+    <canvas id="heroCanvas" aria-hidden="true"></canvas>
+    <div class="hero-overlay" aria-hidden="true"></div>
+    <div class="hero-content">
+      <!-- <div class="hero-badge" data-anim="fadeDown">Fine Dining Experience</div> -->
+     <h1 class="hero-title" data-anim="fadeUp">
+  <span class="hero-title-line" id="heroTitleLine1"></span>
+  <span class="hero-title-line italic" id="heroTitleLine2"></span>
+  <span class="hero-title-line" id="heroTitleLine3"></span>
+</h1>
+
+     <p class="hero-sub" data-anim="fadeUp" data-delay="0.3" id="heroTagline"></p>
+      <div class="hero-btns" data-anim="fadeUp" data-delay="0.5">
+        <a href="#menu" class="btn btn-primary">
+          <span>Explore Menu</span>
+          <i class="fa fa-arrow-right" aria-hidden="true"></i>
+        </a>
+        <a href="#reservation" class="btn btn-outline">
+          <span>Book a Table</span>
+        </a>
+      </div>
+      <div class="hero-stats" data-anim="fadeUp" data-delay="0.7" id="heroStats"></div>
+    </div>
+    <!-- <div class="hero-scroll-hint" aria-hidden="true">
+      <span>Scroll to explore</span>
+      <div class="scroll-arrow"></div>
+    </div> -->
+  </section>
+
+  <!-- ─── ABOUT SECTION ────────────────────────────────── -->
+  <section id="about" class="about section" aria-label="About HSR">
+    <div class="container">
+      <div class="about-grid">
+        <div class="about-images">
+          <div class="about-img-main reveal-img">
+            <img src="img/hotelfrontimg3.png" alt="Elegant restaurant interior with candlelight" loading="lazy" />
+          </div>
+          <div class="about-img-sub reveal-img">
+            <img src="https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=400&q=80" alt="Chef preparing gourmet dish" loading="lazy" />
+            <!-- <img src="https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=400&q=80" alt="Chef preparing gourmet dish" loading="lazy" /> -->
+         
+          </div>
+          <div class="about-award glass-card">
+            <i class="fas fa-star" aria-hidden="true"></i>
+            <span>Chef<br/>★★★</span>
+          </div>
+        </div>
+         <div class="about-text">
+        
+          <p class="section-eyebrow reveal-text" id="aboutEyebrow"></p>
+<h2 class="section-title reveal-text" id="aboutTitle"></h2>
+<div id="aboutParagraphs"></div>
+           <div class="about-features" id="aboutFeatures"></div>
+         
+          <a href="#reservation" class="btn btn-primary mt-8 reveal-text">Reserve Your Table</a>
+        </div>
+         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── MENU SECTION ─────────────────────────────────── -->
+    <!-- ─── MENU SECTION ─────────────────────────────────── -->
+<!-- ─── MENU SECTION ─────────────────────────────────── -->
+<section id="menu" class="menu-section section" aria-label="Restaurant Menu">
+  <div class="container">
+   <div class="section-header">
+  <p class="section-eyebrow reveal-text">Signature Flavors</p>
+  <h2 class="section-title reveal-text">Our Curated Menu</h2>
+  <p class="section-sub reveal-text">Discover handcrafted starters, mains, desserts, and beverages prepared for every craving.</p>
+</div>
+
+    <div class="menu-tabs" role="tablist" aria-label="Menu categories">
+      <button class="menu-tab active" data-cat="starters" role="tab" aria-selected="true" aria-controls="menuGrid">
+        <i class="fas fa-seedling" aria-hidden="true"></i> Starters
+      </button>
+      <button class="menu-tab" data-cat="mains" role="tab" aria-selected="false" aria-controls="menuGrid">
+        <i class="fas fa-utensils" aria-hidden="true"></i> Main Course
+      </button>
+      <button class="menu-tab" data-cat="desserts" role="tab" aria-selected="false" aria-controls="menuGrid">
+        <i class="fas fa-ice-cream" aria-hidden="true"></i> Desserts
+      </button>
+      <button class="menu-tab" data-cat="drinks" role="tab" aria-selected="false" aria-controls="menuGrid">
+        <i class="fas fa-wine-glass" aria-hidden="true"></i> Beverages
+      </button>
+    </div>
+
+    <div class="menu-cart-toolbar reveal-text">
+      <button id="openCartBtn" class="btn btn-primary">
+        <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+        <span>View Cart</span>
+        <span id="cartCount" class="cart-count-badge">0</span>
+      </button>
+    </div>
+
+    <div id="menuScrollHint" class="menu-scroll-hint" hidden>
+      <span>Explore more dishes below</span>
+    </div>
+
+    <div class="menu-grid" id="menuGrid" data-menu-mode="preview" data-preview-limit="4" role="tabpanel" aria-live="polite"></div>
+
+    <!-- <div class="menu-grid-footer">
+      <button type="button" id="menuLoadMoreBtn" class="btn btn-outline menu-load-more" hidden>
+        <span>Load More</span>
+      </button>
+    </div> -->
+<br>
+    <div class="menu-preview-cta reveal-text">
+      <a href="menu.html" class="btn btn-gold">
+        <span>View Full Menu</span>
+        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+  </div>
+</section>
+
+  <div id="cartBackdrop" class="cart-backdrop" hidden></div>
+
+  <aside id="cartDrawer" class="cart-drawer" aria-label="Food cart" hidden>
+    <div class="cart-drawer-head">
+      <div>
+        <p class="section-eyebrow">Your Order</p>
+        <h3 class="cart-drawer-title">Food Cart</h3>
+      </div>
+      <button id="closeCartBtn" class="cart-close-btn" aria-label="Close cart">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div id="cartItems" class="cart-items-wrap">
+      <p class="cart-empty-text">Your cart is empty.</p>
+    </div>
+
+    <div class="cart-totals glass-card">
+      <div class="cart-total-row">
+        <span>Subtotal</span>
+        <strong id="cartSubtotal">₹0</strong>
+      </div>
+      <div class="cart-total-row">
+        <span>GST (<span id="gstPercentLabel">5</span>%)</span>
+        <strong id="cartGst">₹0</strong>
+      </div>
+      <div class="cart-total-row grand">
+        <span>Total</span>
+        <strong id="cartTotal">₹0</strong>
+      </div>
+    </div>
+
+    <form id="checkoutForm" class="checkout-form">
+      <div class="form-group">
+        <label for="orderName">Your Name *</label>
+        <input type="text" id="orderName" placeholder="Enter your name" required />
+      </div>
+
+      <div class="form-group">
+        <label for="orderPhone">Phone *</label>
+        <input type="tel" id="orderPhone" maxlength="10" placeholder="9876543210" required />
+      </div>
+
+      <div class="form-group">
+  <label for="orderAddress">Delivery Address *</label>
+  <textarea id="orderAddress" rows="3" placeholder="Enter full address" required></textarea>
+</div>
+
+      <div class="form-group">
+        <label for="orderNote">Special Note</label>
+        <textarea id="orderNote" rows="3" placeholder="Less spicy, no onion, etc."></textarea>
+      </div>
+<div class="payment-box glass-card">
+  <p class="payment-title">Select Payment Method:</p>
+
+  <label class="payment-option">
+    <input type="radio" name="paymentMethod" value="COD" checked />
+    <span>1️⃣ COD</span>
+  </label>
+
+  <label class="payment-option">
+    <input type="radio" name="paymentMethod" value="UPI" />
+    <span>2️⃣ Google Pay / UPI</span>
+  </label>
+
+  <div id="upiBox" class="upi-box" hidden>
+    <div class="upi-offer-card glass-card">
+      <p class="upi-offer-badge">🎉 Pay with Google Pay and get 10% off</p>
+      <p class="upi-offer-note">Discount is applied only for Google Pay / UPI payments.</p>
+
+      <div class="upi-summary">
+        <div class="cart-total-row">
+          <span>Original Total</span>
+          <strong id="upiOriginalTotal">₹0</strong>
+        </div>
+        <div class="cart-total-row">
+          <span>Google Pay Discount (10%)</span>
+          <strong id="upiDiscountAmount">-₹0</strong>
+        </div>
+        <div class="cart-total-row grand">
+          <span>Final Payable</span>
+          <strong id="upiFinalAmount">₹0</strong>
+        </div>
+      </div>
+
+      <button type="button" id="payWithGpayBtn" class="btn btn-gold btn-full">
+        <span>Pay with Google Pay</span>
+        <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+      </button>
+
+      <p class="upi-support-note">
+        Direct Google Pay opening works best on supported mobile devices with a UPI app installed.
+      </p>
+
+      <div id="upiFallbackBox" class="upi-fallback-box" hidden>
+        <p class="upi-line">
+          UPI Link:
+          <a id="upiFallbackLink" href="#" target="_blank" rel="noopener noreferrer">Open payment manually</a>
+        </p>
+        <p class="upi-line">UPI ID: <strong id="orderUpiId">hotelsairaj@upi</strong></p>
+        <p class="upi-line">Amount: <strong id="upiManualAmount">₹0</strong></p>
+      </div>
+
+      <label class="payment-option payment-confirm">
+        <input type="checkbox" id="orderPaymentConfirmed" />
+        <span>I have completed the Google Pay / UPI payment</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+      <button type="submit" class="btn btn-gold btn-full">
+        <span>Place Order on WhatsApp</span>
+        <i class="fab fa-whatsapp" aria-hidden="true"></i>
+      </button>
+    </form>
+
+    <div class="order-preview-wrap">
+      <h4>Order Summary Preview</h4>
+      <pre id="orderPreview" class="order-preview-text">No order yet.</pre>
+    </div>
+  </aside>
+
+  <button id="floatingCartBtn" class="floating-cart-btn" aria-label="Open cart">
+    <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+    <span id="floatingCartCount">0</span>
+  </button>
+
+  <!-- ─── RESERVATION SECTION ──────────────────────────── -->
+  <section id="reservation" class="reservation section" aria-label="Table Reservation">
+    <div class="reservation-bg" aria-hidden="true">
+      <img src="https://images.unsplash.com/photo-1550966871-3ed3cfd27974?w=1600&q=80" alt="" role="presentation" />
+      <div class="reservation-overlay"></div>
+    </div>
+    <div class="container">
+      <div class="reservation-wrapper">
+        <div class="reservation-info">
+       <p class="section-eyebrow reveal-text" id="reservationEyebrow"></p>
+<h2 class="section-title reveal-text" id="reservationTitle"></h2>
+<p class="section-sub reveal-text" id="reservationSubtitle"></p>
+          <div class="reservation-details">
+            <div class="res-detail">
+              <i class="fas fa-clock" aria-hidden="true"></i>
+              <div>
+                <strong>Opening Hours</strong>
+                <span>Tue–Sun: 6:00 PM – 11:00 PM</span>
+              </div>
+            </div>
+            <div class="res-detail">
+              <i class="fas fa-phone" aria-hidden="true"></i>
+              <div>
+                <strong>Phone</strong>
+                <span>+91 96692 25579</span>
+              </div>
+            </div>
+            <div class="res-detail">
+              <i class="fas fa-envelope" aria-hidden="true"></i>
+              <div>
+                <strong>Email</strong>
+                <span><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2b594e584e595d4e6b43445f4e47584a42594a41054245">[email&#160;protected]</a></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="reservation-form-wrap glass-card">
+          <h3>Make a Reservation</h3>
+          <form id="reservationForm" class="res-form"  aria-label="Reservation form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="reservationName">Full Name *</label>
+                <input type="text" id="reservationName" name="name" placeholder="Enter Your Name" required aria-required="true" />
+                <span class="form-error" aria-live="polite"></span>
+              </div>
+              <div class="form-group">
+                <label for="reservationPhone">Phone *</label>
+                <input type="tel" id="reservationPhone" name="phone" maxlength="10" placeholder="9585858585" required aria-required="true" />
+                <span class="form-error" aria-live="polite"></span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="reservationDate">Date *</label>
+                <input type="date" id="reservationDate" name="date" required aria-required="true" />
+                <span class="form-error" aria-live="polite"></span>
+              </div>
+              <div class="form-group">
+                <label for="reservationTime">Time *</label>
+                <select id="reservationTime" name="time" required aria-required="true">
+                  <option value="">Select time</option>
+                  <option>6:00 PM</option>
+                  <option>6:30 PM</option>
+                  <option>7:00 PM</option>
+                  <option>7:30 PM</option>
+                  <option>8:00 PM</option>
+                  <option>8:30 PM</option>
+                  <option>9:00 PM</option>
+                  <option>9:30 PM</option>
+                  <option>10:00 PM</option>
+                </select>
+                <span class="form-error" aria-live="polite"></span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="reservationGuests">Guests *</label>
+                <select id="reservationGuests" name="guests" required aria-required="true">
+                  <option value="">Select guests</option>
+                  <option>1 Guest</option>
+                  <option>2 Guests</option>
+                  <option>3 Guests</option>
+                  <option>4 Guests</option>
+                  <option>5 Guests</option>
+                  <option>6 Guests</option>
+                  <option>7–10 Guests</option>
+                  <option>10+ Guests (Contact Us)</option>
+                </select>
+                <span class="form-error" aria-live="polite"></span>
+              </div>
+              <div class="form-group">
+                <label for="reservationType">Occasion</label>
+                <select id="reservationType" name="occasion">
+                  <option value="">Select occasion</option>
+                  <option>Anniversary</option>
+                  <option>Birthday</option>
+                  <option>Business Dinner</option>
+                  <option>Date Night</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group full">
+              <label for="reservationNote">Special Requests</label>
+              <textarea id="reservationNote" name="note" placeholder="Write Here…" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-gold btn-full">
+              <span>Confirm Reservation</span>
+              <i class="fas fa-check" aria-hidden="true"></i>
+            </button>
+          </form>
+          <div class="form-success" id="resSuccess" role="alert" aria-live="assertive" hidden>
+            <i class="fas fa-check-circle" aria-hidden="true"></i>
+            <h4>Reservation Confirmed!</h4>
+            <p>We'll send a confirmation to your phone. See you soon.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── EVENTS SECTION ───────────────────────────────── -->
+  <section id="events" class="events section" aria-label="Private Events">
+    <div class="container">
+      <div class="section-header">
+    <p class="section-eyebrow reveal-text" id="eventsEyebrow"></p>
+  <h2 class="section-title reveal-text" id="eventsTitle"></h2>
+  <p class="section-sub reveal-text" id="eventsSubtitle"></p>
+      </div>
+      <div class="events-grid" id="eventsCards">
+        <div class="event-card glass-card reveal-card" tabindex="0">
+          <div class="event-icon"><i class="fas fa-heart" aria-hidden="true"></i></div>
+          <img src="img/eventarea1.png" alt="Wedding reception at Aurum" loading="lazy" />
+          <div class="event-content">
+            <h3>Anniversaries</h3>
+            <p>Create an enchanting celebration with bespoke menus, floral arrangements, and personalized service for your most special day.</p>
+            <ul>
+              <li><i class="fas fa-check" aria-hidden="true"></i> Up to 120 guests</li>
+              <li><i class="fas fa-check" aria-hidden="true"></i> Custom floral décor</li>
+              <li><i class="fas fa-check" aria-hidden="true"></i> Private sommelier</li>
+            </ul>
+          </div>
+        </div>
+        <div class="event-card glass-card reveal-card" tabindex="0">
+          <div class="event-icon"><i class="fas fa-birthday-cake" aria-hidden="true"></i></div>
+          <img src="img/eventarea1.png" alt="Birthday celebration" loading="lazy" />
+          <div class="event-content">
+            <h3>Birthday Celebrations</h3>
+            <p>Mark every milestone with a luxurious private dinner, custom cake, and an evening crafted entirely around you.</p>
+            <ul>
+              <li><i class="fas fa-check" aria-hidden="true"></i> Personalized menu</li>
+              <li><i class="fas fa-check" aria-hidden="true"></i> Live music optional</li>
+              <li><i class="fas fa-check" aria-hidden="true"></i> Dedicated event host</li>
+            </ul>
+          </div>
+        </div>
+        <div class="event-card glass-card reveal-card" tabindex="0">
+          <div class="event-icon"><i class="fas fa-briefcase" aria-hidden="true"></i></div>
+          <img src="img/eventarea3.png" alt="Corporate event dining" loading="lazy" />
+          <div class="event-content">
+            <h3>Corporate Events</h3>
+            <p>Impress clients and colleagues with an impeccable fine dining experience that elevates every business occasion.</p>
+            <ul>
+              <li><i class="fas fa-check" aria-hidden="true"></i> AV equipment available</li>
+              <li><i class="fas fa-check" aria-hidden="true"></i> Customized branding</li>
+              <li><i class="fas fa-check" aria-hidden="true"></i> Flexible layouts</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <!-- Event Inquiry Form -->
+           <div class="event-form-wrap glass-card reveal-card">
+        <h3>Enquire About a Private Event</h3>
+        <form id="eventForm" class="event-form" aria-label="Event inquiry form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="eventName">Your Name *</label>
+              <input type="text" id="eventName" name="name" placeholder="Your full name" required aria-required="true" />
+            </div>
+            <div class="form-group">
+              <label for="eventPhone">Phone *</label>
+              <input type="tel" id="eventPhone" name="phone" maxlength="10" placeholder="9876543210" required aria-required="true" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="eventType">Event Type *</label>
+              <select id="eventType" name="eventType" required aria-required="true">
+                <option value="">Select event type</option>
+                <option>Wedding</option>
+                <option>Anniversary</option>
+                <option>Birthday</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="eventDate">Date *</label>
+              <input type="date" id="eventDate" name="date" required aria-required="true" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="eventGuests">Expected Guests *</label>
+              <input type="number" id="eventGuests" name="guests" placeholder="e.g. 50" min="1" max="500" required aria-required="true" />
+            </div>
+            <div class="form-group">
+              <label for="specialRequirements">Special Requirements</label>
+              <input type="text" id="specialRequirements" name="specialRequirements" placeholder="Decoration, music, cake, stage..." />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            <span>Send Enquiry</span>
+            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+          </button>
+        </form>
+
+        <div class="form-success" id="evtSuccess" role="alert" aria-live="assertive" hidden>
+          <i class="fas fa-check-circle" aria-hidden="true"></i>
+          <h4>Enquiry Ready!</h4>
+          <p>Your event inquiry has been prepared and WhatsApp will open for owner notification.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── GALLERY SECTION ──────────────────────────────── -->
+  <section id="gallery" class="gallery section" aria-label="Photo Gallery">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-eyebrow reveal-text">Visual Story</p>
+        <h2 class="section-title reveal-text">A Feast for <em>the Eyes</em></h2>
+      </div>
+      <div class="gallery-grid" role="list">
+        <div class="gallery-item gallery-item--large" role="listitem">
+          <img src="img/1.png" alt="Exquisite plated dish" loading="lazy" />
+          <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
+        </div>
+        <div class="gallery-item" role="listitem">
+          <img src="img/2.png" alt="Restaurant ambiance" loading="lazy" />
+          <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
+        </div>
+        <div class="gallery-item" role="listitem">
+          <img src="img/3.png" alt="Gourmet cocktail" loading="lazy" />
+          <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
+        </div>
+        <div class="gallery-item gallery-item--tall" role="listitem">
+          <img src="img/4.png" alt="Chef cooking in open kitchen" loading="lazy" />
+          <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
+        </div>
+        <div class="gallery-item" role="listitem">
+          <img src="img/5.png" alt="Colorful gourmet salad" loading="lazy" />
+          <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
+        </div>
+        <div class="gallery-item" role="listitem">
+          <img src="img/6.png" alt="Artisan pancakes" loading="lazy" />
+          <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
+        </div>
+        <div class="gallery-item gallery-item--wide" role="listitem">
+          <img src="img/8.png" alt="Fine dining table setting" loading="lazy" />
+          <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
+        </div>
+        <div class="gallery-item" role="listitem">
+          <img src="img/7.png" alt="Gourmet burger and fries" loading="lazy" />
+          <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
+        </div>
+      </div>
+    </div>
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer" hidden>
+      <button class="lightbox-close" id="lightboxClose" aria-label="Close lightbox"><i class="fas fa-times" aria-hidden="true"></i></button>
+      <button class="lightbox-prev" id="lightboxPrev" aria-label="Previous image"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+      <button class="lightbox-next" id="lightboxNext" aria-label="Next image"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+      <div class="lightbox-content">
+        <img id="lightboxImg" src="" alt="Gallery full view" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TESTIMONIALS ─────────────────────────────────── -->
+  <section id="testimonials" class="testimonials section" aria-label="Customer Testimonials">
+    <div class="testimonials-bg" aria-hidden="true"></div>
+    <div class="container">
+      <div class="section-header">
+        <p class="section-eyebrow reveal-text">What Guests Say</p>
+        <h2 class="section-title reveal-text">Stories of <em>Delight</em></h2>
+      </div>
+      <div class="testimonials-slider" role="region" aria-label="Testimonials carousel">
+        <div class="testimonials-track" id="testimonialsTrack">
+          <!-- Cards injected via JS -->
+        </div>
+        <div class="testimonials-controls">
+          <button class="testi-btn" id="testPrev" aria-label="Previous testimonial"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+          <div class="testi-dots" id="testiDots" role="list" aria-label="Testimonial pages"></div>
+          <button class="testi-btn" id="testNext" aria-label="Next testimonial"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CONTACT SECTION ──────────────────────────────── -->
+<section id="contact" class="contact section" aria-label="Contact">
+  <div class="container">
+    <div class="section-header">
+      <p class="section-eyebrow reveal-text" id="contactEyebrow"></p>
+      <h2 class="section-title reveal-text" id="contactTitle"></h2>
+      <p class="section-sub reveal-text" id="contactSubtitle"></p>
+    </div>
+
+    <div class="contact-grid">
+      <div class="contact-info">
+
+        <!-- Address -->
+        <div class="contact-card glass-card reveal-card">
+          <i class="fas fa-map-marker-alt"></i>
+          <div>
+            <strong>Address</strong>
+            <p id="contactAddress"></p>
+          </div>
+        </div>
+
+        <!-- Phone -->
+        <div class="contact-card glass-card reveal-card">
+          <i class="fas fa-phone"></i>
+          <div>
+            <strong>Phone</strong>
+            <a href="#" id="contactPhone"></a>
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="contact-card glass-card reveal-card">
+          <i class="fas fa-envelope"></i>
+          <div>
+            <strong>Email</strong>
+            <a href="#" id="contactEmail"></a>
+          </div>
+        </div>
+
+        <!-- Hours -->
+        <div class="contact-card glass-card reveal-card">
+          <i class="fas fa-clock"></i>
+          <div>
+            <strong>Hours</strong>
+            <span>Tuesday – Sunday<br/>6:00 PM – 11:00 PM</span>
+          </div>
+        </div>
+
+        <!-- Map -->
+        <div class="map-wrap reveal-card">
+          <iframe id="contactMapEmbed"
+            width="100%" height="250"
+            style="border:0;"
+            allowfullscreen=""
+            loading="lazy">
+          </iframe>
+
+          <br><br>
+
+          <a id="contactMapLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+            Open Map
+          </a>
+        </div>
+
+      </div>
+
+      <!-- FORM (unchanged) -->
+      <div class="contact-form-wrap glass-card reveal-card">
+        <h3>Send a Message</h3>
+          <form id="contactForm" class="contact-form"  aria-label="Contact form">
+            <div class="form-group">
+              <label for="ctName">Your Name *</label>
+              <input type="text" id="ctName" name="name" placeholder="Your full name" required aria-required="true" />
+            </div>
+            <div class="form-group">
+              <label for="ctEmail">Email Address *</label>
+              <input type="email" id="ctEmail" name="email" placeholder="your@email.com" required aria-required="true" />
+            </div>
+            <div class="form-group">
+              <label for="ctSubject">Subject</label>
+              <input type="text" id="ctSubject" name="subject" placeholder="How can we help?" />
+            </div>
+            <div class="form-group">
+              <label for="ctMessage">Message *</label>
+              <textarea id="ctMessage" name="message" rows="5" placeholder="Write your message here…" required aria-required="true"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">
+              <span>Send Message</span>
+              <i class="fas fa-paper-plane" aria-hidden="true"></i>
+            </button>
+          </form>
+             <div class="form-success" id="ctSuccess" role="alert" aria-live="assertive" hidden>
+            <i class="fas fa-check-circle" aria-hidden="true"></i>
+            <h4>Message Sent!</h4>
+            <p>We'll get back to you within 24 hours.</p>
+          </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+  <!-- Whatsapp Inquairy -->
+<!-- ─── WHATSAPP FLOAT BUTTON ───────────────────────── -->
+<div class="whatsapp-float" id="whatsappBtn">
+  <i class="fab fa-whatsapp"></i>
+</div>
+<div class="wa-popup" id="waPopup">
+  <div class="wa-box glass-card">
+    <h3>Welcome To Hotel Sai Raj</h3>
+    <p>Choose what you want to do:</p>
+
+    <a href="#events" class="btn btn-primary btn-full wa-action-link">
+      <span>Book Event</span>
+    </a>
+
+    <a href="#menu" class="btn btn-outline btn-full wa-action-link">
+      <span>Order Food</span>
+    </a>
+
+    <p class="wa-popup-note">
+      Food orders and event enquiries will open the owner's WhatsApp with a pre-filled message.
+    </p>
+  </div>
+</div>
+
+<div
+  id="waFallbackModal"
+  class="wa-fallback"
+  hidden
+  aria-hidden="true"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="waFallbackTitle"
+>
+  <div class="wa-fallback__backdrop" data-wa-close></div>
+  <div class="wa-fallback__dialog glass-card" role="document">
+    <button type="button" class="wa-fallback__close" aria-label="Close WhatsApp fallback dialog" data-wa-close>
+      <i class="fas fa-times" aria-hidden="true"></i>
+    </button>
+    <!-- <div class="wa-fallback__icon" aria-hidden="true">
+      <i class="fab fa-whatsapp"></i>
+    </div> -->
+    <h3 id="waFallbackTitle">WhatsApp could not open automatically</h3>
+    <p>In case WhatsApp does not open, please enable pop-ups and try again.</p>
+       <!-- <a id="waFallbackLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-full">
+      <span>Open WhatsApp Manually</span>
+    </a> -->
+  </div>
+</div>
+
+  <!-- ─── FOOTER ───────────────────────────────────────── -->
+<footer class="footer" role="contentinfo">
+  <div class="footer-top">
+    <div class="container footer-grid">
+
+      <!-- Brand -->
+      <div class="footer-brand">
+        <a href="#hero" class="nav-logo">
+          <div id="footerBrandName"></div>
+        </a>
+
+        <p id="footerDescription"></p>
+
+        <div class="footer-social">
+          <a href="#"><i class="fab fa-instagram"></i></a>
+          <a href="#"><i class="fab fa-facebook-f"></i></a>
+          <a href="#"><i class="fab fa-x-twitter"></i></a>
+          <a href="#"><i class="fab fa-tiktok"></i></a>
+        </div>
+      </div>
+
+      <!-- Explore -->
+      <div class="footer-col">
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="#about">About Us</a></li>
+          <li><a href="#menu">Our Menu</a></li>
+          <li><a href="#gallery">Gallery</a></li>
+          <li><a href="#events">Private Events</a></li>
+          <li><a href="#testimonials">Reviews</a></li>
+        </ul>
+      </div>
+
+      <!-- Reservation -->
+      <div class="footer-col">
+        <h4>Reservations</h4>
+        <ul>
+          <li><a href="#reservation">Book a Table</a></li>
+          <li><a href="#events">Private Dining</a></li>
+          <li><a href="#contact">Contact Us</a></li>
+        </ul>
+
+        <h4 class="mt-6">Opening Hours</h4>
+        <ul class="hours-list">
+          <li><span>Mon</span><span>Closed</span></li>
+          <li><span>Tue–Fri</span><span>6PM–11PM</span></li>
+          <li><span>Sat–Sun</span><span>5PM–11PM</span></li>
+        </ul>
+      </div>
+
+      <!-- Contact -->
+      <div class="footer-col">
+        <h4>Find Us</h4>
+
+        <p id="footerAddress"></p>
+
+        <a href="#" id="footerPhone" class="footer-contact-link">
+          <i class="fas fa-phone"></i>
+        </a>
+
+        <a href="#" id="footerEmail" class="footer-contact-link">
+          <i class="fas fa-envelope"></i>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <div class="container">
+      <p>© <span id="footerYear"></span> Hotel Sai Raj. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+  <!-- <script src="js/data.js"></script> -->
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="js/three-scene.js" defer></script>
+  <script src="js/app-config.js"></script>
+  <script src="js/data-loader.js" defer></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>
