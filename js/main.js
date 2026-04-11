@@ -20,6 +20,84 @@ let CONFIG = {
   window.APP_RUNTIME_CONFIG?.BACKEND_BASE_URL || "http://localhost:5000"
 };
 
+const DEFAULT_THEME_BRIDGE = {
+  "--gold": "#c9a84c",
+  "--gold-light": "#e8d08a",
+  "--gold-dark": "#a07830",
+  "--cream": "#fbf8f3",
+  "--cream-dark": "#f3ede3",
+  "--text": "#333333",
+  "--text-muted": "#6b6b6b",
+  "--font-display": "\"Cormorant Garamond\", Georgia, serif",
+  "--font-body": "\"Jost\", sans-serif",
+  "--radius": "16px",
+  "--radius-sm": "8px",
+  "--container-max": "1280px",
+  "--btn-radius": "100px",
+  "--btn-primary-bg": "linear-gradient(135deg, var(--gold-dark), var(--gold))",
+  "--btn-primary-border": "1px solid transparent",
+  "--btn-primary-shadow": "0 4px 20px rgba(201, 168, 76, 0.35)",
+  "--btn-primary-shadow-hover": "0 8px 30px rgba(201, 168, 76, 0.45)",
+  "--btn-outline-border": "1.5px solid rgba(255, 255, 255, 0.6)",
+  "--btn-outline-hover-border": "var(--white)",
+  "--btn-outline-hover-bg": "rgba(255, 255, 255, 0.08)"
+};
+
+const THEME_FONT_PRESETS = {
+  default: {
+    display: "\"Cormorant Garamond\", Georgia, serif",
+    body: "\"Jost\", sans-serif"
+  },
+  system: {
+    display: "Georgia, serif",
+    body: "system-ui, sans-serif"
+  }
+};
+
+const THEME_CONTAINER_PRESETS = {
+  compact: "1120px",
+  default: "1280px",
+  wide: "1440px"
+};
+
+const THEME_BUTTON_PRESETS = {
+  default: {
+    "--btn-radius": "100px",
+    "--btn-primary-bg": "linear-gradient(135deg, var(--gold-dark), var(--gold))",
+    "--btn-primary-border": "1px solid transparent",
+    "--btn-primary-shadow": "0 4px 20px rgba(201, 168, 76, 0.35)",
+    "--btn-primary-shadow-hover": "0 8px 30px rgba(201, 168, 76, 0.45)",
+    "--btn-outline-border": "1.5px solid rgba(255, 255, 255, 0.6)",
+    "--btn-outline-hover-border": "var(--white)",
+    "--btn-outline-hover-bg": "rgba(255, 255, 255, 0.08)"
+  },
+  solid: {
+    "--btn-radius": "14px",
+    "--btn-primary-bg": "var(--gold)",
+    "--btn-primary-border": "1px solid var(--gold-dark)",
+    "--btn-primary-shadow": "0 4px 16px rgba(201, 168, 76, 0.28)",
+    "--btn-primary-shadow-hover": "0 8px 24px rgba(201, 168, 76, 0.36)",
+    "--btn-outline-border": "1px solid var(--gold)",
+    "--btn-outline-hover-border": "var(--gold)",
+    "--btn-outline-hover-bg": "rgba(201, 168, 76, 0.12)"
+  },
+  crisp: {
+    "--btn-radius": "8px",
+    "--btn-primary-bg": "linear-gradient(135deg, var(--gold), var(--gold-light))",
+    "--btn-primary-border": "1px solid var(--gold-dark)",
+    "--btn-primary-shadow": "0 4px 18px rgba(160, 120, 48, 0.28)",
+    "--btn-primary-shadow-hover": "0 8px 26px rgba(160, 120, 48, 0.4)",
+    "--btn-outline-border": "1.5px solid rgba(255, 255, 255, 0.75)",
+    "--btn-outline-hover-border": "var(--gold-light)",
+    "--btn-outline-hover-bg": "rgba(255, 255, 255, 0.14)"
+  }
+};
+
+const THEME_HERO_LAYOUT_CLASSNAMES = [
+  "hero-layout-split",
+  "hero-layout-stacked"
+];
+
 function getMenuData() {
   return window.APP_STATE?.menu || {};
 }
@@ -31,6 +109,19 @@ function getMenuCategories() {
 function getMenuItemsByCategory(category) {
   const menuData = getMenuData();
   return Array.isArray(menuData[category]) ? menuData[category] : [];
+}
+
+function getCurrentMenuCategory() {
+  const gridCategory = $("#menuGrid")?.dataset.activeCategory;
+  if (gridCategory) return gridCategory;
+
+  const activeTabCategory = $(".menu-tab.active")?.dataset.cat;
+  if (activeTabCategory) return activeTabCategory;
+
+  const categories = getMenuCategories();
+  if (categories.includes("starters")) return "starters";
+
+  return categories[0] || "starters";
 }
 
 function applyHotelConfigFromState() {
@@ -46,6 +137,324 @@ function applyHotelConfigFromState() {
     API_BASE_URL:
   window.APP_RUNTIME_CONFIG?.BACKEND_BASE_URL || "http://localhost:5000"
   };
+}
+
+function getActiveHotelName() {
+  const configuredHotelName =
+    typeof CONFIG?.HOTEL_NAME === "string" ? CONFIG.HOTEL_NAME.trim() : "";
+
+  if (configuredHotelName) {
+    return configuredHotelName;
+  }
+
+  const stateHotelName =
+    typeof window.APP_STATE?.hotel?.hotelName === "string"
+      ? window.APP_STATE.hotel.hotelName.trim()
+      : "";
+
+  return stateHotelName;
+}
+
+function normalizeOrderContextText(value = "", maxLength = 80) {
+  const text = typeof value === "string"
+    ? value.replace(/[\u0000-\u001f\u007f]/g, " ").trim()
+    : "";
+  return text.slice(0, maxLength);
+}
+
+function getActiveOrderContext(rawContext = window.APP_STATE?.orderContext || {}) {
+  const context = rawContext || {};
+  const tableNumber = normalizeOrderContextText(context.tableNumber, 80);
+  const orderType =
+    typeof context.orderType === "string" && context.orderType.trim()
+      ? normalizeOrderContextText(context.orderType, 40)
+      : tableNumber
+        ? "dine-in"
+        : "standard";
+  const orderSource =
+    typeof context.orderSource === "string" && context.orderSource.trim()
+      ? normalizeOrderContextText(context.orderSource, 40)
+      : tableNumber
+        ? "qr"
+        : "website";
+
+  return {
+    orderType,
+    tableNumber,
+    orderSource
+  };
+}
+
+function hasDineInOrderContext(context = getActiveOrderContext()) {
+  return context.orderType === "dine-in" && !!context.tableNumber;
+}
+
+function getEffectiveCustomerAddress(value, context = getActiveOrderContext()) {
+  const address = typeof value === "string" ? value.trim() : "";
+  if (address || !hasDineInOrderContext(context)) return address;
+
+  return `Dine-in table ${context.tableNumber}`;
+}
+
+function syncOrderContextUI() {
+  const checkoutForm = document.getElementById("checkoutForm");
+  if (!checkoutForm) return;
+
+  const context = getActiveOrderContext();
+  let notice = document.getElementById("orderContextNotice");
+  const addressInput = document.getElementById("orderAddress");
+  const addressLabel = document.querySelector('label[for="orderAddress"]');
+
+  checkoutForm.dataset.orderType = context.orderType;
+  checkoutForm.dataset.orderSource = context.orderSource;
+  checkoutForm.dataset.tableNumber = context.tableNumber;
+
+  if (addressInput && !addressInput.dataset.originalPlaceholder) {
+    addressInput.dataset.originalPlaceholder =
+      addressInput.getAttribute("placeholder") || "";
+  }
+
+  if (addressLabel && !addressLabel.dataset.originalText) {
+    addressLabel.dataset.originalText = addressLabel.textContent || "";
+  }
+
+  if (!hasDineInOrderContext(context)) {
+    if (notice) notice.remove();
+    if (addressInput) {
+      addressInput.required = true;
+      addressInput.placeholder =
+        addressInput.dataset.originalPlaceholder || "Enter full address";
+    }
+    if (addressLabel) {
+      addressLabel.textContent =
+        addressLabel.dataset.originalText || "Delivery Address *";
+    }
+    return;
+  }
+
+  if (addressInput) {
+    addressInput.required = false;
+    addressInput.placeholder = `Optional note for table ${context.tableNumber}`;
+  }
+
+  if (addressLabel) {
+    addressLabel.textContent = "Table Note / Address (optional)";
+  }
+
+  if (!notice) {
+    notice = document.createElement("div");
+    notice.id = "orderContextNotice";
+    notice.className = "order-context-notice";
+    notice.setAttribute("aria-live", "polite");
+    checkoutForm.prepend(notice);
+  }
+
+  notice.innerHTML = `
+    <span class="order-context-kicker">Dine-in QR order</span>
+    <strong>Table ${escapeHTML(context.tableNumber)}</strong>
+    <small>We detected this table link. Normal checkout fields are still available as fallback.</small>
+  `;
+}
+
+function getValidThemeColor(value) {
+  const candidate = typeof value === "string" ? value.trim() : "";
+  if (!candidate) return "";
+
+  if (window.CSS && typeof window.CSS.supports === "function") {
+    return window.CSS.supports("color", candidate) ? candidate : "";
+  }
+
+  return candidate;
+}
+
+function getValidThemeRadius(value) {
+  const candidate = typeof value === "string" ? value.trim() : "";
+  if (!candidate) return "";
+
+  if (window.CSS && typeof window.CSS.supports === "function") {
+    return window.CSS.supports("border-radius", candidate) ? candidate : "";
+  }
+
+  return candidate;
+}
+
+function getThemeFontPreset(value) {
+  const presetKey = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return THEME_FONT_PRESETS[presetKey] || THEME_FONT_PRESETS.default;
+}
+
+function getThemeContainerMax(value) {
+  const presetKey = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return THEME_CONTAINER_PRESETS[presetKey] || THEME_CONTAINER_PRESETS.default;
+}
+
+function getThemeButtonPreset(value) {
+  const presetKey = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return THEME_BUTTON_PRESETS[presetKey] || THEME_BUTTON_PRESETS.default;
+}
+
+function getThemeHeroLayoutVariant(value) {
+  const presetKey = typeof value === "string" ? value.trim().toLowerCase() : "";
+
+  if (presetKey === "split" || presetKey === "stacked") {
+    return presetKey;
+  }
+
+  return "default";
+}
+
+function applyHeroLayoutVariantFromState() {
+  const layoutVariant = getThemeHeroLayoutVariant(window.APP_STATE?.theme?.hero?.layoutVariant);
+  const heroSection = document.getElementById("hero");
+
+  document.body.dataset.heroLayoutVariant = layoutVariant;
+
+  THEME_HERO_LAYOUT_CLASSNAMES.forEach((className) => {
+    document.body.classList.toggle(className, className === `hero-layout-${layoutVariant}`);
+  });
+
+  if (!heroSection) return;
+
+  heroSection.dataset.heroLayoutVariant = layoutVariant;
+
+  THEME_HERO_LAYOUT_CLASSNAMES.forEach((className) => {
+    heroSection.classList.toggle(className, className === `hero-layout-${layoutVariant}`);
+  });
+}
+
+function applyThemeFromState() {
+  const root = document.documentElement;
+  const themeColors = window.APP_STATE?.theme?.colors || {};
+  const themeRadius = window.APP_STATE?.theme?.radius || {};
+  const themeTypography = window.APP_STATE?.theme?.typography || {};
+  const themeLayout = window.APP_STATE?.theme?.layout || {};
+  const themeButtons = window.APP_STATE?.theme?.buttons || {};
+  const fontPreset = getThemeFontPreset(themeTypography.preset);
+  const buttonPreset = getThemeButtonPreset(themeButtons.preset);
+
+  if (!root) return;
+
+  const bridge = {
+    "--gold": getValidThemeColor(themeColors.primary) || DEFAULT_THEME_BRIDGE["--gold"],
+    "--gold-light":
+      getValidThemeColor(themeColors.primaryLight) ||
+      DEFAULT_THEME_BRIDGE["--gold-light"],
+    "--gold-dark":
+      getValidThemeColor(themeColors.primaryDark) ||
+      DEFAULT_THEME_BRIDGE["--gold-dark"],
+    "--cream":
+      getValidThemeColor(themeColors.background) || DEFAULT_THEME_BRIDGE["--cream"],
+    "--cream-dark":
+      getValidThemeColor(themeColors.backgroundAlt) ||
+      DEFAULT_THEME_BRIDGE["--cream-dark"],
+    "--text":
+      getValidThemeColor(themeColors.text) || DEFAULT_THEME_BRIDGE["--text"],
+    "--text-muted":
+      getValidThemeColor(themeColors.textMuted) ||
+      DEFAULT_THEME_BRIDGE["--text-muted"],
+    "--font-display": fontPreset.display || DEFAULT_THEME_BRIDGE["--font-display"],
+    "--font-body": fontPreset.body || DEFAULT_THEME_BRIDGE["--font-body"],
+    "--radius":
+      getValidThemeRadius(themeRadius.base) || DEFAULT_THEME_BRIDGE["--radius"],
+    "--radius-sm":
+      getValidThemeRadius(themeRadius.small) ||
+      DEFAULT_THEME_BRIDGE["--radius-sm"],
+    "--container-max":
+      getThemeContainerMax(themeLayout.containerPreset) ||
+      DEFAULT_THEME_BRIDGE["--container-max"]
+  };
+
+  Object.assign(bridge, buttonPreset);
+
+  Object.entries(bridge).forEach(([name, value]) => {
+    root.style.setProperty(name, value);
+  });
+}
+
+function getLoaderFallbackText(el) {
+  if (!el) return "";
+
+  if (!el.dataset.fallbackText) {
+    el.dataset.fallbackText = el.textContent || "";
+  }
+
+  return el.dataset.fallbackText;
+}
+
+function applyLoadingScreenFromState() {
+  const loader = $("#loader");
+  if (!loader) return;
+
+  const loadingScreen = window.APP_STATE?.loadingScreen || {};
+  const logoPrimary = $(".loader-a", loader);
+  const logoSecondary = $(".loader-urum", loader);
+  const tagline = $(".loader-tagline", loader);
+  const bar = $("#loaderBar");
+  const nextBackgroundColor = getValidThemeColor(loadingScreen.backgroundColor);
+  const nextAccentColor = getValidThemeColor(loadingScreen.accentColor);
+  const nextTextColor = getValidThemeColor(loadingScreen.textColor);
+
+  const nextPrimary =
+    (typeof loadingScreen.logoPrimaryText === "string" &&
+      loadingScreen.logoPrimaryText.trim()) ||
+    getLoaderFallbackText(logoPrimary);
+  const nextSecondary =
+    (typeof loadingScreen.logoSecondaryText === "string" &&
+      loadingScreen.logoSecondaryText.trim()) ||
+    getLoaderFallbackText(logoSecondary);
+  const nextTagline =
+    (typeof loadingScreen.tagline === "string" && loadingScreen.tagline.trim()) ||
+    getLoaderFallbackText(tagline);
+
+  if (logoPrimary) {
+    logoPrimary.textContent = nextPrimary;
+  }
+
+  if (logoSecondary) {
+    logoSecondary.textContent = nextSecondary;
+  }
+
+  if (tagline) {
+    tagline.textContent = nextTagline;
+  }
+
+  if (nextBackgroundColor) {
+    loader.style.background = nextBackgroundColor;
+  } else {
+    loader.style.removeProperty("background");
+  }
+
+  if (logoPrimary) {
+    if (nextAccentColor) {
+      logoPrimary.style.color = nextAccentColor;
+    } else {
+      logoPrimary.style.removeProperty("color");
+    }
+  }
+
+  if (bar) {
+    if (nextAccentColor) {
+      bar.style.background = nextAccentColor;
+    } else {
+      bar.style.removeProperty("background");
+    }
+  }
+
+  if (logoSecondary) {
+    if (nextTextColor) {
+      logoSecondary.style.color = nextTextColor;
+    } else {
+      logoSecondary.style.removeProperty("color");
+    }
+  }
+
+  if (tagline) {
+    if (nextTextColor) {
+      tagline.style.color = nextTextColor;
+    } else {
+      tagline.style.removeProperty("color");
+    }
+  }
 }
 
 function setText(id, value) {
@@ -109,9 +518,151 @@ function renderAboutFeatures(features = []) {
     .join("");
 }
 
+function applyAboutImageSource(image, { src = "", alt = "" } = {}) {
+  if (!image) return;
+
+  if (!image.dataset.fallbackSrc) {
+    image.dataset.fallbackSrc = image.getAttribute("src") || "";
+  }
+
+  if (!image.dataset.fallbackAlt) {
+    image.dataset.fallbackAlt = image.getAttribute("alt") || "";
+  }
+
+  const nextSrc = src ? normalizeImagePath(src) : image.dataset.fallbackSrc;
+  const nextAlt = alt || image.dataset.fallbackAlt || "";
+
+  if (nextSrc) {
+    image.setAttribute("src", nextSrc);
+  }
+
+  image.setAttribute("alt", nextAlt);
+}
+
+function renderAboutImages(about = {}) {
+  const mainImage = document.querySelector(".about-img-main img");
+  const subImage = document.querySelector(".about-img-sub img");
+
+  applyAboutImageSource(mainImage, {
+    src: about.primaryImageUrl,
+    alt: about.primaryImageAlt
+  });
+
+  applyAboutImageSource(subImage, {
+    src: about.secondaryImageUrl,
+    alt: about.secondaryImageAlt
+  });
+}
+
+const ORDERABLE_HOMEPAGE_SECTION_IDS = [
+  "about",
+  "menu",
+  "reservation",
+  "events",
+  "gallery",
+  "testimonials",
+  "contact"
+];
+
+function setSectionVisibility(sectionId, isVisible) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+
+  section.hidden = !isVisible;
+  section.setAttribute("aria-hidden", isVisible ? "false" : "true");
+}
+
+function linkPointsToSection(link, sectionId) {
+  const rawHref = link.getAttribute("href") || "";
+  if (!rawHref || !rawHref.includes("#")) return false;
+
+  if (rawHref.startsWith("#")) {
+    return rawHref.slice(1) === sectionId;
+  }
+
+  try {
+    return new URL(rawHref, window.location.href).hash === `#${sectionId}`;
+  } catch (error) {
+    return false;
+  }
+}
+
+function getSectionLinkVisibilityTarget(link) {
+  const listItem = link.closest("li");
+  if (listItem && listItem.querySelectorAll("a").length === 1) {
+    return listItem;
+  }
+
+  return link;
+}
+
+function setSectionLinkVisibility(sectionId, isVisible) {
+  document.querySelectorAll("a[href*='#']").forEach((link) => {
+    if (!linkPointsToSection(link, sectionId)) return;
+
+    const target = getSectionLinkVisibilityTarget(link);
+    target.hidden = !isVisible;
+    target.setAttribute("aria-hidden", isVisible ? "false" : "true");
+  });
+}
+
+function setReservationCtaVisibility(isVisible) {
+  document
+    .querySelectorAll('#hero a[href="#reservation"], #about a[href="#reservation"]')
+    .forEach((link) => {
+      link.hidden = !isVisible;
+      link.setAttribute("aria-hidden", isVisible ? "false" : "true");
+      link.style.display = isVisible ? "" : "none";
+    });
+}
+
+function applySectionVisibilityFromState() {
+  const sectionTheme = window.APP_STATE?.theme?.sections || {};
+  const reservationVisible = sectionTheme.reservation !== false;
+
+  setSectionVisibility("about", sectionTheme.about !== false);
+  setSectionVisibility("events", sectionTheme.events !== false);
+  setSectionVisibility("gallery", sectionTheme.gallery !== false);
+  setSectionVisibility("reservation", reservationVisible);
+  setSectionVisibility("testimonials", sectionTheme.testimonials !== false);
+
+  setSectionLinkVisibility("about", sectionTheme.about !== false);
+  setSectionLinkVisibility("events", sectionTheme.events !== false);
+  setSectionLinkVisibility("gallery", sectionTheme.gallery !== false);
+  setSectionLinkVisibility("reservation", reservationVisible);
+  setSectionLinkVisibility("testimonials", sectionTheme.testimonials !== false);
+  setReservationCtaVisibility(reservationVisible);
+}
+
+function applySectionOrderFromState() {
+  const heroSection = document.getElementById("hero");
+  const parent = heroSection?.parentElement;
+  const sectionTheme = window.APP_STATE?.theme?.sections || {};
+  const configuredOrder = Array.isArray(sectionTheme.order) ? sectionTheme.order : [];
+
+  if (!heroSection || !parent) return;
+
+  const orderedSectionIds = [
+    ...configuredOrder,
+    ...ORDERABLE_HOMEPAGE_SECTION_IDS.filter((sectionId) => !configuredOrder.includes(sectionId))
+  ];
+
+  let insertionPoint = heroSection;
+
+  orderedSectionIds.forEach((sectionId) => {
+    const section = document.getElementById(sectionId);
+    if (!section || section.parentElement !== parent) return;
+
+    insertionPoint.insertAdjacentElement("afterend", section);
+    insertionPoint = section;
+  });
+}
+
 function renderHotelContent() {
   const hotel = window.APP_STATE?.hotel;
   if (!hotel) return;
+
+  applyHeroLayoutVariantFromState();
 
   document.title = hotel.hotelName || "Hotel Website";
 
@@ -126,6 +677,7 @@ function renderHotelContent() {
   renderHeroStats(hotel.hero?.stats || []);
 
   setText("aboutEyebrow", hotel.about?.eyebrow);
+  renderAboutImages(hotel.about || {});
  
   const aboutTitleEl = document.getElementById("aboutTitle");
 if (aboutTitleEl) {
@@ -144,10 +696,14 @@ if (aboutTitleEl) {
 
   renderAboutParagraphs(hotel.about?.paragraphs || []);
   renderAboutFeatures(hotel.about?.features || []);
+  renderGallerySection();
+  GalleryLightbox.init();
   renderEventsSection();
   renderReservationSection();
   renderContactSection();
   renderFooterSection();
+  applySectionOrderFromState();
+  applySectionVisibilityFromState();
 
   initReveal(document.getElementById("about"));
   initReveal(document.getElementById("events"));
@@ -161,6 +717,23 @@ if (navLogo) {
 
 const CART_STORAGE_KEY = "hsr_food_cart_v1";
 let CART = [];
+
+function getCartStorageKey() {
+  const orderContext = getActiveOrderContext();
+  if (!hasDineInOrderContext(orderContext)) {
+    return CART_STORAGE_KEY;
+  }
+
+  const hotelSlug = getActiveHotelSlug() || "hotel";
+  return [
+    CART_STORAGE_KEY,
+    hotelSlug,
+    "table",
+    orderContext.tableNumber
+  ]
+    .map((part) => encodeURIComponent(String(part).trim()))
+    .join(":");
+}
 
 /* ── Shared Helpers ─────────────────────────────────── */
 function formatCurrency(value) {
@@ -272,6 +845,50 @@ function initManagedImages(scope = document) {
   });
 }
 
+function getGalleryItemClassName(layoutVariant = "standard") {
+  const classNames = ["gallery-item"];
+
+  if (layoutVariant === "large") {
+    classNames.push("gallery-item--large");
+  } else if (layoutVariant === "tall") {
+    classNames.push("gallery-item--tall");
+  } else if (layoutVariant === "wide") {
+    classNames.push("gallery-item--wide");
+  }
+
+  return classNames.join(" ");
+}
+
+function renderGallerySection() {
+  const galleryGrid = document.querySelector("#gallery .gallery-grid");
+  const galleryItems = window.APP_STATE?.gallery || [];
+
+  if (!galleryGrid) return;
+
+  if (!galleryGrid.dataset.staticMarkup) {
+    galleryGrid.dataset.staticMarkup = galleryGrid.innerHTML;
+  }
+
+  if (!galleryItems.length) {
+    galleryGrid.innerHTML = galleryGrid.dataset.staticMarkup;
+    return;
+  }
+
+  galleryGrid.innerHTML = galleryItems
+    .map((item, index) => {
+      const imageUrl = normalizeImagePath(item.imageUrl || "");
+      const alt = escapeAttr(item.alt || `Gallery image ${index + 1}`);
+
+      return `
+        <div class="${getGalleryItemClassName(item.layoutVariant)}" role="listitem">
+          <img src="${escapeAttr(imageUrl)}" alt="${alt}" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+          <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
 const WhatsAppFallback = (() => {
   let modal;
   let fallbackLink;
@@ -359,6 +976,229 @@ const WhatsAppFallback = (() => {
   return { bind, open, close };
 })();
 
+function normalizeTestimonialsData(items = []) {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+
+      const text = typeof item.text === "string" ? item.text.trim() : "";
+      const name = typeof item.name === "string" ? item.name.trim() : "";
+      const role = typeof item.role === "string" ? item.role.trim() : "";
+      const avatar = normalizeImagePath(item.avatar || item.image || "");
+      const stars = Math.max(1, Math.min(5, Math.round(Number(item.stars || 5))));
+
+      if (!text || !name) return null;
+
+      return {
+        text,
+        name,
+        role,
+        avatar,
+        stars
+      };
+    })
+    .filter(Boolean);
+}
+
+function renderTestimonialsSection(testimonials = window.APP_STATE?.testimonials || []) {
+  const track = $("#testimonialsTrack");
+  const dotsWrap = $("#testiDots");
+  const prevBtn = $("#testPrev");
+  const nextBtn = $("#testNext");
+  const safeTestimonials = normalizeTestimonialsData(testimonials);
+
+  if (!track || !dotsWrap) return;
+
+  track.innerHTML = "";
+  dotsWrap.innerHTML = "";
+  track.style.transform = "";
+
+  const hasMultipleTestimonials = safeTestimonials.length > 1;
+
+  [prevBtn, nextBtn].forEach((button) => {
+    if (!button) return;
+    button.hidden = !hasMultipleTestimonials;
+    button.setAttribute("aria-hidden", hasMultipleTestimonials ? "false" : "true");
+  });
+
+  dotsWrap.hidden = !hasMultipleTestimonials;
+  dotsWrap.setAttribute("aria-hidden", hasMultipleTestimonials ? "false" : "true");
+
+  if (!safeTestimonials.length) {
+    return;
+  }
+
+  safeTestimonials.forEach((testimonial, index) => {
+    const stars = "★".repeat(testimonial.stars) + "☆".repeat(5 - testimonial.stars);
+    const card = document.createElement("div");
+    card.className = "testi-card";
+    card.setAttribute("role", "tabpanel");
+    card.setAttribute("aria-label", `Testimonial ${index + 1}`);
+    card.innerHTML = `
+      <div class="testi-quote" aria-hidden="true">"</div>
+      <p class="testi-text">${escapeHTML(testimonial.text)}</p>
+      <div class="testi-author">
+        <div class="testi-avatar">
+          <img src="${escapeAttr(testimonial.avatar)}" alt="${escapeAttr(testimonial.name)}" loading="lazy" />
+        </div>
+        <div class="testi-stars" aria-label="${testimonial.stars} out of 5 stars">${stars}</div>
+        <strong class="testi-name">${escapeHTML(testimonial.name)}</strong>
+        <span class="testi-role">${escapeHTML(testimonial.role)}</span>
+      </div>
+    `;
+    track.appendChild(card);
+  });
+
+  let currentIndex = 0;
+
+  function goTo(index) {
+    currentIndex = (index + safeTestimonials.length) % safeTestimonials.length;
+    track.style.transform = `translateX(-${currentIndex * 100}%)`;
+    $$(".testi-dot", dotsWrap).forEach((currentDot, dotIndex) => {
+      currentDot.classList.toggle("active", dotIndex === currentIndex);
+    });
+  }
+
+  safeTestimonials.forEach((_, index) => {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "testi-dot" + (index === 0 ? " active" : "");
+    dot.setAttribute("role", "listitem");
+    dot.setAttribute("aria-label", `Go to testimonial ${index + 1}`);
+    dot.addEventListener("click", () => {
+      goTo(index);
+    });
+    dotsWrap.appendChild(dot);
+  });
+
+  if (prevBtn) {
+    prevBtn.onclick = () => goTo(currentIndex - 1);
+  }
+
+  if (nextBtn) {
+    nextBtn.onclick = () => goTo(currentIndex + 1);
+  }
+}
+
+function setTestimonialReviewFormVisibility(isVisible) {
+  const wrap = $("#testimonialReviewWrap");
+  const openBtn = $("#openTestimonialReviewBtn");
+
+  if (!wrap || !openBtn) return;
+
+  wrap.hidden = !isVisible;
+  wrap.setAttribute("aria-hidden", isVisible ? "false" : "true");
+  openBtn.setAttribute("aria-expanded", isVisible ? "true" : "false");
+
+  if (isVisible) {
+    wrap.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+async function handleTestimonialReviewSubmit(e) {
+  e.preventDefault();
+
+  const form = e.target;
+
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+
+  const hotelName = getActiveHotelName();
+  const hotelSlug = getActiveHotelSlug();
+  const name =
+    form.querySelector('[name="name"], #testimonialReviewName')?.value.trim() || "";
+  const role =
+    form.querySelector('[name="role"], #testimonialReviewRole')?.value.trim() || "";
+  const text =
+    form.querySelector('[name="text"], #testimonialReviewText')?.value.trim() || "";
+  const stars = Number(
+    form.querySelector('[name="stars"], #testimonialReviewStars')?.value || 5
+  );
+  const submitButton = form.querySelector('button[type="submit"]');
+
+  if (!hotelName || !hotelSlug) {
+    showToast("Hotel context is unavailable right now. Please refresh and try again.");
+    return;
+  }
+
+  if (!name || !text || !Number.isFinite(stars)) {
+    showToast("Please fill all required review details.");
+    return;
+  }
+
+  try {
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Submitting review...";
+    }
+
+    const result = await saveTestimonialReview({
+      hotelName,
+      hotelSlug,
+      name,
+      role,
+      text,
+      stars
+    });
+
+    form.reset();
+    const starsInput = form.querySelector("#testimonialReviewStars");
+    if (starsInput) {
+      starsInput.value = "5";
+    }
+    setTestimonialReviewFormVisibility(false);
+    showToast(
+      result?.message || "Review submitted successfully. It will appear after approval."
+    );
+  } catch (error) {
+    console.error("Testimonial review submit failed:", error);
+    showToast(error.message || "Failed to submit review. Please try again.");
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = "Submit Review";
+    }
+  }
+}
+
+function bindTestimonialReviewForm() {
+  const openBtn = $("#openTestimonialReviewBtn");
+  const cancelBtn = $("#cancelTestimonialReviewBtn");
+  const form = $("#testimonialReviewForm");
+
+  if (openBtn && openBtn.dataset.boundClick !== "true") {
+    openBtn.addEventListener("click", () => {
+      setTestimonialReviewFormVisibility(true);
+      const firstInput = $("#testimonialReviewName");
+      if (firstInput) {
+        firstInput.focus();
+      }
+    });
+    openBtn.dataset.boundClick = "true";
+  }
+
+  if (cancelBtn && cancelBtn.dataset.boundClick !== "true") {
+    cancelBtn.addEventListener("click", () => {
+      form?.reset();
+      const starsInput = $("#testimonialReviewStars");
+      if (starsInput) {
+        starsInput.value = "5";
+      }
+      setTestimonialReviewFormVisibility(false);
+    });
+    cancelBtn.dataset.boundClick = "true";
+  }
+
+  if (!form || form.dataset.boundSubmit === "true") return;
+
+  form.addEventListener("submit", handleTestimonialReviewSubmit);
+  form.dataset.boundSubmit = "true";
+}
+
 function tryOpenExternalLink(url) {
   let popup = null;
 
@@ -399,16 +1239,59 @@ function findMenuItemById(id) {
   return flattenMenuData().find((item) => item.id === id);
 }
 
+function normalizeCartNumber(value, fallback = 0) {
+  const candidate = Number(value);
+  return Number.isFinite(candidate) && candidate >= 0 ? candidate : fallback;
+}
+
+function normalizeCartItem(rawItem) {
+  if (!rawItem || typeof rawItem !== "object") return null;
+
+  const rawId = typeof rawItem.id === "string" ? rawItem.id.trim() : "";
+  const menuItem = rawId ? findMenuItemById(rawId) : null;
+  const id = rawId || menuItem?.id || "";
+  const name =
+    (typeof rawItem.name === "string" && rawItem.name.trim()) ||
+    menuItem?.name ||
+    "";
+  const qty = Math.max(1, Math.trunc(normalizeCartNumber(rawItem.qty, 1)));
+  const price = normalizeCartNumber(
+    rawItem.price,
+    Number.isFinite(Number(menuItem?.price)) ? Number(menuItem.price) : 0,
+  );
+
+  if (!id || !name) return null;
+
+  return {
+    id,
+    name,
+    price,
+    qty,
+    image:
+      (typeof rawItem.image === "string" && rawItem.image.trim()) ||
+      menuItem?.image ||
+      "",
+  };
+}
+
+function normalizeCartItems(items = []) {
+  return Array.isArray(items)
+    ? items.map((item) => normalizeCartItem(item)).filter(Boolean)
+    : [];
+}
+
 function loadCart() {
   try {
-    CART = JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || [];
+    const storedCart = JSON.parse(localStorage.getItem(getCartStorageKey())) || [];
+    CART = normalizeCartItems(storedCart);
   } catch {
     CART = [];
   }
 }
 
 function saveCart() {
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(CART));
+  CART = normalizeCartItems(CART);
+  localStorage.setItem(getCartStorageKey(), JSON.stringify(CART));
 }
 
 function getCartItem(id) {
@@ -438,7 +1321,7 @@ function addToCart(itemId) {
 
   saveCart();
   updateCartUI();
-  renderMenu($(".menu-tab.active")?.dataset.cat || "starters");
+  renderMenu(getCurrentMenuCategory());
 }
 
 function updateCartQty(itemId, delta) {
@@ -453,25 +1336,26 @@ function updateCartQty(itemId, delta) {
 
   saveCart();
   updateCartUI();
-  renderMenu($(".menu-tab.active")?.dataset.cat || "starters");
+  renderMenu(getCurrentMenuCategory());
 }
 
 function removeFromCart(itemId) {
   CART = CART.filter((item) => item.id !== itemId);
   saveCart();
   updateCartUI();
-  renderMenu($(".menu-tab.active")?.dataset.cat || "starters");
+  renderMenu(getCurrentMenuCategory());
 }
 
-function calculateCartTotals() {
-  const subtotal = CART.reduce((sum, item) => sum + item.price * item.qty, 0);
+function calculateCartTotals(items = CART) {
+  const safeItems = normalizeCartItems(items);
+  const subtotal = safeItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   const gst = Math.round((subtotal * Number(CONFIG.GST_PERCENT || 5)) / 100);
   const total = subtotal + gst;
   return { subtotal, gst, total };
 }
 
-function calculatePayableAmounts() {
-  const { subtotal, gst, total: normalTotal } = calculateCartTotals();
+function calculatePayableAmounts(items = CART) {
+  const { subtotal, gst, total: normalTotal } = calculateCartTotals(items);
   const gpayDiscount = Math.round(normalTotal * 0.1);
   const gpayFinalTotal = Math.max(0, normalTotal - gpayDiscount);
 
@@ -487,7 +1371,7 @@ function calculatePayableAmounts() {
 function buildUpiLink(amount) {
   const params = new URLSearchParams({
     pa: CONFIG.OWNER_UPI_ID || "",
-    pn: CONFIG.HOTEL_NAME || "Hotel Sai Raj",
+    pn: getActiveHotelName() || "Hotel Sai Raj",
     tn: "Food Order",
     am: Number(amount || 0).toFixed(0),
     cu: "INR",
@@ -500,27 +1384,43 @@ function buildOrderSummaryText({
   customerName,
   customerPhone,
   customerAddress,
+  customerTableNote,
   locationLink,
   paymentMethod,
   note,
   paymentConfirmed,
+  items = CART,
+  orderContext = getActiveOrderContext(),
 }) {
+  const safeItems = normalizeCartItems(items);
   const { subtotal, gst, normalTotal, gpayDiscount, gpayFinalTotal } =
-    calculatePayableAmounts();
+    calculatePayableAmounts(safeItems);
 
   const isUpi = paymentMethod === "UPI";
+  const hotelName = getActiveHotelName();
+  const activeOrderContext = getActiveOrderContext(orderContext);
 
   const lines = [
-  `Order Summary - ${CONFIG.HOTEL_NAME}`,
+  `Order Summary - ${hotelName || "Hotel"}`,
   `━━━━━━━━━━━━━━━━━━━━━━`,
   `Name: ${customerName}`,
   `Phone: ${customerPhone}`,
-  `Address: ${customerAddress || "Not provided"}`,
-  `Location: ${locationLink || "Not shared"}`,
-  "",
 ];
 
-  CART.forEach((item) => {
+  if (hasDineInOrderContext(activeOrderContext)) {
+    lines.push("Order Type: Dine-in");
+    lines.push(`Table: ${activeOrderContext.tableNumber}`);
+    lines.push(
+      `Source: ${activeOrderContext.orderSource === "qr" ? "QR code" : activeOrderContext.orderSource}`,
+    );
+    lines.push(`Table Note: ${customerTableNote || "Not provided"}`);
+  } else {
+    lines.push(`Address: ${customerAddress || "Not provided"}`);
+    lines.push(`Location: ${locationLink || "Not shared"}`);
+  }
+  lines.push("");
+
+  safeItems.forEach((item) => {
     lines.push(
       ` ${item.name} ×${item.qty} = ${formatCurrency(item.price * item.qty)}`,
     );
@@ -721,7 +1621,10 @@ async function postJSON(url, payload) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.message || "Request failed");
+    const validationDetails = Array.isArray(data.errors) && data.errors.length
+      ? ` (${data.errors.join("; ")})`
+      : "";
+    throw new Error(`${data.message || "Request failed"}${validationDetails}`);
   }
 
   return data;
@@ -987,6 +1890,10 @@ function bindCartDelegation() {
 let revealObserver;
 
 function initReveal(scope = document) {
+  if (!scope || typeof scope.querySelectorAll !== "function") {
+    return;
+  }
+
   const targets = $$(".reveal-text, .reveal-img, .reveal-card", scope).filter(
     (el) => !el.dataset.revealBound
   );
@@ -1063,17 +1970,76 @@ function initMenuAndCart() {
     desserts: "Dessert",
     drinks: "Beverage",
   };
+  const availableCategories = getMenuCategories();
+  const tabCategoryOrder = tabs
+    .map((tab) => tab.dataset.cat)
+    .filter(Boolean);
+
+  function getCategoryLabel(category) {
+    if (CATEGORY_LABELS[category]) {
+      return CATEGORY_LABELS[category];
+    }
+
+    const normalized = String(category || "")
+      .trim()
+      .replace(/[-_]+/g, " ");
+
+    if (!normalized) {
+      return "Menu";
+    }
+
+    return normalized.replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  function getInitialMenuCategory() {
+    const currentTabCategory = $(".menu-tab.active")?.dataset.cat;
+
+    if (currentTabCategory && availableCategories.includes(currentTabCategory)) {
+      return currentTabCategory;
+    }
+
+    const firstTabbedCategory = tabCategoryOrder.find((category) =>
+      availableCategories.includes(category)
+    );
+
+    if (firstTabbedCategory) {
+      return firstTabbedCategory;
+    }
+
+    return availableCategories[0] || "starters";
+  }
+
+  function syncCategoryTabsAvailability() {
+    const hasTabbedCategories = tabCategoryOrder.some((category) =>
+      availableCategories.includes(category)
+    );
+
+    tabs.forEach((tab) => {
+      const category = tab.dataset.cat || "";
+      const hasItems = availableCategories.includes(category);
+      const shouldHide = hasTabbedCategories ? !hasItems : false;
+
+      tab.hidden = shouldHide;
+      tab.disabled = hasTabbedCategories ? !hasItems : false;
+      tab.setAttribute("aria-hidden", shouldHide ? "true" : "false");
+
+      if (tab.disabled) {
+        tab.setAttribute("aria-selected", "false");
+      }
+    });
+  }
 
   const menuMode = grid.dataset.menuMode || "full";
   const previewLimit = Number(grid.dataset.previewLimit || 4);
 
   const ALL_ITEMS = flattenMenuData().map((item) => {
+    const categoryLabel = getCategoryLabel(item.category);
     const normalizedTags = [
       item.tag,
       item.badge,
       item.name,
       item.desc,
-      CATEGORY_LABELS[item.category],
+      categoryLabel,
     ]
       .filter(Boolean)
       .join(" | ")
@@ -1083,18 +2049,18 @@ function initMenuAndCart() {
       ...item,
       normalizedTags: Array.from(
         new Set(
-          [item.tag, item.badge, CATEGORY_LABELS[item.category]].filter(
+          [item.tag, item.badge, categoryLabel].filter(
             Boolean,
           ),
         ),
       ),
       searchBlob:
-        `${item.name} ${item.desc} ${item.tag || ""} ${item.badge || ""} ${CATEGORY_LABELS[item.category]}`.toLowerCase(),
+        `${item.name} ${item.desc} ${item.tag || ""} ${item.badge || ""} ${categoryLabel}`.toLowerCase(),
     };
   });
 
   const MENU_STATE = {
-    activeCategory: "starters",
+    activeCategory: getInitialMenuCategory(),
     searchScope: "category",
     query: "",
     selectedTag: "all",
@@ -1102,6 +2068,7 @@ function initMenuAndCart() {
     batchSize: 8,
     visibleCount: menuMode === "preview" ? previewLimit : 8,
   };
+  let pendingMenuGridFocusSelectors = [];
 
   function shouldUsePreviewMode() {
     return menuMode === "preview";
@@ -1133,6 +2100,32 @@ function initMenuAndCart() {
     return ["all", ...Array.from(tagSet)];
   }
 
+  function getMenuGridActionSelector(action, itemId) {
+    if (!action || !itemId) return "";
+    return `[data-${action}="${escapeAttr(itemId)}"]`;
+  }
+
+  function queueMenuGridFocusRestore(itemId, actions = []) {
+    pendingMenuGridFocusSelectors = actions
+      .map((action) => getMenuGridActionSelector(action, itemId))
+      .filter(Boolean);
+  }
+
+  function restorePendingMenuGridFocus() {
+    if (!pendingMenuGridFocusSelectors.length) return;
+
+    const selectors = [...pendingMenuGridFocusSelectors];
+    pendingMenuGridFocusSelectors = [];
+
+    const nextTarget = selectors
+      .map((selector) => grid.querySelector(selector))
+      .find((node) => node instanceof HTMLElement);
+
+    if (nextTarget instanceof HTMLElement) {
+      nextTarget.focus({ preventScroll: true });
+    }
+  }
+
 
   function getSelectedPaymentMethod() {
     return $('input[name="paymentMethod"]:checked')?.value || "COD";
@@ -1148,7 +2141,11 @@ function initMenuAndCart() {
 
     const customerName = $("#orderName")?.value.trim() || "Preview User";
     const customerPhone = $("#orderPhone")?.value.trim() || "Not provided";
-    const customerAddress = $("#orderAddress")?.value.trim() || "Not provided";
+    const orderContext = getActiveOrderContext();
+    const rawCustomerAddress = $("#orderAddress")?.value.trim() || "";
+    const customerAddress =
+      getEffectiveCustomerAddress(rawCustomerAddress, orderContext) ||
+      "Not provided";
     const note = $("#orderNote")?.value.trim() || "";
     const paymentMethod = getSelectedPaymentMethod();
     const paymentConfirmed = $("#orderPaymentConfirmed")?.checked || false;
@@ -1157,10 +2154,12 @@ function initMenuAndCart() {
       customerName,
       customerPhone,
       customerAddress,
+      customerTableNote: rawCustomerAddress,
       locationLink: USER_LOCATION || "Not shared",
       paymentMethod,
       note,
       paymentConfirmed,
+      orderContext,
     });
   }
 
@@ -1325,7 +2324,7 @@ function initMenuAndCart() {
         return `
         <button
           type="button"
-          class="menu-tag-chip${isActive ? " active" : ""}"
+          class="menu-filter-chip${isActive ? " active" : ""}"
           data-tag="${escapeAttr(tag)}"
           aria-pressed="${isActive}"
         >
@@ -1340,16 +2339,26 @@ function initMenuAndCart() {
     if (resultsMeta) {
       const total = filteredItems.length;
       const shown = visibleItems.length;
+      const remaining = Math.max(0, total - shown);
       const context =
         MENU_STATE.searchScope === "all"
           ? "across full menu"
-          : `in ${CATEGORY_LABELS[MENU_STATE.activeCategory].toLowerCase()}`;
+          : `in ${getCategoryLabel(MENU_STATE.activeCategory).toLowerCase()}`;
+      const remainingText =
+        !shouldUsePreviewMode() && remaining > 0
+          ? ` ${remaining} more available.`
+          : "";
 
-      resultsMeta.textContent = `${shown} of ${total} dishes shown ${context}`;
+      resultsMeta.textContent =
+        `${shown} of ${total} dishes shown ${context}.` + remainingText;
     }
 
     if (searchState) {
-      const bits = [];
+      const bits = [
+        MENU_STATE.searchScope === "all"
+          ? "Scope: Full Menu"
+          : `Scope: ${getCategoryLabel(MENU_STATE.activeCategory)}`
+      ];
       if (MENU_STATE.query.trim())
         bits.push(`Search: "${MENU_STATE.query.trim()}"`);
       if (MENU_STATE.selectedTag !== "all")
@@ -1359,11 +2368,34 @@ function initMenuAndCart() {
   }
 
   function renderEmptyState() {
+    const activeQuery = MENU_STATE.query.trim();
+    const activeTag = MENU_STATE.selectedTag !== "all" ? MENU_STATE.selectedTag : "";
+    const scopeLabel =
+      MENU_STATE.searchScope === "all"
+        ? "the full menu"
+        : getCategoryLabel(MENU_STATE.activeCategory);
+    const detailParts = [];
+
+    if (activeQuery) {
+      detailParts.push(`for "${escapeHTML(activeQuery)}"`);
+    }
+
+    if (activeTag) {
+      detailParts.push(`with tag "${escapeHTML(activeTag)}"`);
+    }
+
+    const detailText = detailParts.length ? ` ${detailParts.join(" ")}` : "";
+    const scopeText =
+      MENU_STATE.searchScope === "all"
+        ? `across ${scopeLabel}`
+        : `in ${escapeHTML(scopeLabel)}`;
+
     grid.innerHTML = `
       <div class="menu-empty-state glass-card">
         <i class="fas fa-search" aria-hidden="true"></i>
         <h3>No matching dishes found</h3>
-        <p>Try changing search, category, or tag filters.</p>
+        <p>No dishes matched${detailText} ${scopeText}.</p>
+        <p>Try changing search, switching scope, or clearing tag filters.</p>
       </div>
     `;
   }
@@ -1371,7 +2403,9 @@ function initMenuAndCart() {
 
 
   function addToCartWithLocation(itemId) {
+    if (!hasDineInOrderContext()) {
       getUserLiveLocation();
+    }
     addToCart(itemId);
     showToast("Added to cart");
   }
@@ -1424,7 +2458,7 @@ function initMenuAndCart() {
         <div class="menu-card-body">
           <div class="menu-card-head">
             <h3 class="menu-card-name">${escapeHTML(item.name)}</h3>
-            ${showCategoryPill ? `<span class="menu-card-category">${escapeHTML(CATEGORY_LABELS[item.category])}</span>` : ""}
+            ${showCategoryPill ? `<span class="menu-card-category">${escapeHTML(getCategoryLabel(item.category))}</span>` : ""}
           </div>
 
           <p class="menu-card-desc">${escapeHTML(item.desc || "")}</p>
@@ -1472,13 +2506,20 @@ function initMenuAndCart() {
     options = {},
   ) {
     const { resetVisible = false } = options;
+    const nextCategory = availableCategories.includes(category)
+      ? category
+      : availableCategories.includes(MENU_STATE.activeCategory)
+        ? MENU_STATE.activeCategory
+        : getInitialMenuCategory();
 
-    MENU_STATE.activeCategory = category || MENU_STATE.activeCategory;
+    MENU_STATE.activeCategory = nextCategory || MENU_STATE.activeCategory;
+    grid.dataset.activeCategory = MENU_STATE.activeCategory;
 
     if (resetVisible && !shouldUsePreviewMode()) {
       MENU_STATE.visibleCount = MENU_STATE.batchSize;
     }
 
+    syncCategoryTabsAvailability();
     syncActiveTabUI();
     syncScopeButtonsUI();
     updateClearButtonUI();
@@ -1493,6 +2534,7 @@ function initMenuAndCart() {
       if (loadMoreBtn) loadMoreBtn.hidden = true;
       if (scrollHint) scrollHint.hidden = true;
       renderEmptyState();
+      restorePendingMenuGridFocus();
       return;
     }
 
@@ -1513,12 +2555,20 @@ function initMenuAndCart() {
     }
 
     if (scrollHint) {
-      scrollHint.hidden =
-        shouldUsePreviewMode() || filteredItems.length <= MENU_STATE.batchSize;
+      const scrollHintLabel = $("span", scrollHint);
+      scrollHint.hidden = shouldUsePreviewMode() || remaining <= 0;
+
+      if (scrollHintLabel) {
+        scrollHintLabel.textContent =
+          remaining > 0
+            ? `Explore ${remaining} more dish${remaining === 1 ? "" : "es"} below`
+            : "Explore more dishes below";
+      }
     }
 
     updateResultsSummary(filteredItems, visibleItems);
     attachDynamicHoverAndTilt();
+    restorePendingMenuGridFocus();
   };
 
   tabs.forEach((tab) => {
@@ -1650,25 +2700,31 @@ function initMenuAndCart() {
   });
 
   grid.addEventListener("click", (e) => {
+    if (!(e.target instanceof Element)) return;
+
     const btn = e.target.closest("button");
     if (!btn) return;
 
     if (btn.dataset.add) {
+      queueMenuGridFocusRestore(btn.dataset.add, ["plus", "remove", "add"]);
       addToCartWithLocation(btn.dataset.add);
       return;
     }
 
     if (btn.dataset.plus) {
+      queueMenuGridFocusRestore(btn.dataset.plus, ["plus", "minus", "remove", "add"]);
       updateCartQty(btn.dataset.plus, 1);
       return;
     }
 
     if (btn.dataset.minus) {
+      queueMenuGridFocusRestore(btn.dataset.minus, ["minus", "plus", "add"]);
       updateCartQty(btn.dataset.minus, -1);
       return;
     }
 
     if (btn.dataset.remove) {
+      queueMenuGridFocusRestore(btn.dataset.remove, ["add"]);
       removeFromCart(btn.dataset.remove);
     }
   });
@@ -1676,14 +2732,23 @@ function initMenuAndCart() {
 async function handleCheckoutSubmit(e) {
   e.preventDefault();
 
-  if (!CART.length) {
+  const normalizedCart = normalizeCartItems(CART);
+  const hotelName = getActiveHotelName();
+  const payableAmounts = calculatePayableAmounts(normalizedCart);
+
+  if (!normalizedCart.length) {
     showToast("Your cart is empty.");
     return;
   }
 
+  const orderContext = getActiveOrderContext();
   const customerName = document.getElementById("orderName")?.value.trim();
   const customerPhone = document.getElementById("orderPhone")?.value.trim();
-  const customerAddress = document.getElementById("orderAddress")?.value.trim();
+  const rawCustomerAddress = document.getElementById("orderAddress")?.value.trim() || "";
+  const customerAddress = getEffectiveCustomerAddress(
+    rawCustomerAddress,
+    orderContext,
+  );
   const note = document.getElementById("orderNote")?.value.trim() || "";
 
   const paymentMethod = 
@@ -1692,7 +2757,26 @@ async function handleCheckoutSubmit(e) {
   const paymentConfirmed = !!document.getElementById("orderPaymentConfirmed")?.checked;
 
   if (!customerName || !customerPhone || !customerAddress) {
-    showToast("Please fill all required order details.");
+    showToast(
+      hasDineInOrderContext(orderContext)
+        ? "Please enter your name and phone number."
+        : "Please fill all required order details."
+    );
+    return;
+  }
+
+  if (customerName.length < 2) {
+    showToast("Please enter a valid name.");
+    return;
+  }
+
+  if (customerPhone.length < 8) {
+    showToast("Please enter a valid phone number.");
+    return;
+  }
+
+  if (!hasDineInOrderContext(orderContext) && customerAddress.length < 3) {
+    showToast("Please enter a Proper delivery address.");
     return;
   }
 
@@ -1708,10 +2792,13 @@ async function handleCheckoutSubmit(e) {
     customerName,
     customerPhone,
     customerAddress,
+    customerTableNote: rawCustomerAddress,
     locationLink,
     paymentMethod,
     note,
     paymentConfirmed,
+    items: normalizedCart,
+    orderContext,
   });
 
   // Show in preview
@@ -1719,7 +2806,7 @@ async function handleCheckoutSubmit(e) {
 
   // Prepare payload for backend (optional)
   const payload = {
-    hotelName: CONFIG.HOTEL_NAME,
+    hotelName,
     hotelSlug: getActiveHotelSlug(),
     customerName,
     customerPhone,
@@ -1728,8 +2815,16 @@ async function handleCheckoutSubmit(e) {
     note,
     paymentMethod: paymentMethod === "UPI" ? "Google Pay / UPI" : "COD",
     paymentConfirmed,
-    totals: calculatePayableAmounts(),
-    items: CART.map(item => ({
+    totals: payableAmounts,
+    whatsappMessage: summaryText,
+    orderContext: hasDineInOrderContext(orderContext)
+      ? {
+          orderType: orderContext.orderType,
+          tableNumber: orderContext.tableNumber,
+          orderSource: orderContext.orderSource
+        }
+      : undefined,
+    items: normalizedCart.map(item => ({
       id: item.id,
       name: item.name,
       qty: item.qty,
@@ -1741,7 +2836,10 @@ async function handleCheckoutSubmit(e) {
 
   try {
     const result = await postJSON("/api/orders", payload);
-    waLink = result.ownerWhatsappLink || ownerWhatsAppLink(summaryText);
+    const activeHotelWhatsappLink = cleanPhone(CONFIG.OWNER_WHATSAPP_NUMBER)
+      ? ownerWhatsAppLink(summaryText)
+      : "";
+    waLink = activeHotelWhatsappLink || result.ownerWhatsappLink || ownerWhatsAppLink(summaryText);
   } catch (error) {
     console.warn("Backend save failed, using direct WhatsApp fallback", error);
     waLink = ownerWhatsAppLink(summaryText);
@@ -1779,7 +2877,8 @@ function bindCheckoutForm() {
   updateCartUI();
   bindCartDelegation();
   WhatsAppFallback.bind();
-  renderMenu("starters", { resetVisible: true });
+  syncOrderContextUI();
+  renderMenu(MENU_STATE.activeCategory, { resetVisible: true });
   updatePaymentUI();
   updateOrderPreview();
   bindCheckoutForm();
@@ -1880,40 +2979,64 @@ function bindCheckoutForm() {
 /* ════════════════════════════════════════════════════════
    8. GALLERY LIGHTBOX
    ════════════════════════════════════════════════════════ */
-(function initGallery() {
-  const items = $$(".gallery-item");
-  const lightbox = $("#lightbox");
-  const lbImg = $("#lightboxImg");
-  const closeBtn = $("#lightboxClose");
-  const prevBtn = $("#lightboxPrev");
-  const nextBtn = $("#lightboxNext");
-  if (!lightbox) return;
-
+const GalleryLightbox = (() => {
   let current = 0;
-  const images = items.map((item) => {
-    const img = item.querySelector("img");
-    return {
-      src: img ? img.src.replace(/w=\d+/, "w=1200") : "",
-      alt: img ? img.alt : "",
-    };
-  });
+  let isBound = false;
+
+  function getItems() {
+    const gallerySection = $("#gallery");
+    return gallerySection ? $$(".gallery-item", gallerySection) : [];
+  }
+
+  function getImages() {
+    return getItems().map((item) => {
+      const img = item.querySelector("img");
+      return {
+        src: img ? img.src.replace(/w=\d+/, "w=1200") : "",
+        alt: img ? img.alt : "",
+      };
+    });
+  }
 
   function openLightbox(idx) {
+    const lightbox = $("#lightbox");
+    const lbImg = $("#lightboxImg");
+    const closeBtn = $("#lightboxClose");
+    const images = getImages();
+
+    if (!lightbox || !lbImg || !images.length || !images[idx]) return;
+
     current = idx;
     lbImg.src = images[current].src;
     lbImg.alt = images[current].alt;
     lightbox.hidden = false;
     document.body.style.overflow = "hidden";
-    closeBtn.focus();
+
+    if (closeBtn) {
+      closeBtn.focus();
+    }
   }
 
   function closeLightbox() {
+    const lightbox = $("#lightbox");
+    const items = getItems();
+
+    if (!lightbox) return;
+
     lightbox.hidden = true;
     document.body.style.overflow = "";
-    items[current].focus();
+
+    if (items[current]) {
+      items[current].focus();
+    }
   }
 
   function navigate(dir) {
+    const lbImg = $("#lightboxImg");
+    const images = getImages();
+
+    if (!lbImg || !images.length) return;
+
     current = (current + dir + images.length) % images.length;
     lbImg.style.opacity = "0";
     setTimeout(() => {
@@ -1923,35 +3046,60 @@ function bindCheckoutForm() {
     }, 200);
   }
 
-  lbImg.style.transition = "opacity 0.2s ease";
+  function bindItems() {
+    getItems().forEach((item, i) => {
+      item.setAttribute("tabindex", "0");
+      item.setAttribute("role", "button");
+      item.setAttribute("aria-label", `View image ${i + 1}`);
 
-  items.forEach((item, i) => {
-    item.setAttribute("tabindex", "0");
-    item.setAttribute("role", "button");
-    item.setAttribute("aria-label", `View image ${i + 1}`);
-    item.addEventListener("click", () => openLightbox(i));
-    item.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        openLightbox(i);
-      }
+      item.onclick = () => openLightbox(i);
+      item.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLightbox(i);
+        }
+      };
     });
-  });
+  }
 
-  if (closeBtn) closeBtn.addEventListener("click", closeLightbox);
-  if (prevBtn) prevBtn.addEventListener("click", () => navigate(-1));
-  if (nextBtn) nextBtn.addEventListener("click", () => navigate(1));
+  function bindControls() {
+    const lightbox = $("#lightbox");
+    const lbImg = $("#lightboxImg");
+    const closeBtn = $("#lightboxClose");
+    const prevBtn = $("#lightboxPrev");
+    const nextBtn = $("#lightboxNext");
 
-  lightbox.addEventListener("click", (e) => {
-    if (e.target === lightbox) closeLightbox();
-  });
+    if (!lightbox || isBound) return;
 
-  document.addEventListener("keydown", (e) => {
-    if (lightbox.hidden) return;
-    if (e.key === "Escape") closeLightbox();
-    if (e.key === "ArrowLeft") navigate(-1);
-    if (e.key === "ArrowRight") navigate(1);
-  });
+    if (lbImg) {
+      lbImg.style.transition = "opacity 0.2s ease";
+    }
+
+    if (closeBtn) closeBtn.addEventListener("click", closeLightbox);
+    if (prevBtn) prevBtn.addEventListener("click", () => navigate(-1));
+    if (nextBtn) nextBtn.addEventListener("click", () => navigate(1));
+
+    lightbox.addEventListener("click", (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (lightbox.hidden) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") navigate(-1);
+      if (e.key === "ArrowRight") navigate(1);
+    });
+
+    isBound = true;
+  }
+
+  return {
+    init() {
+      if (!$("#lightbox")) return;
+      bindItems();
+      bindControls();
+    },
+  };
 })();
 
 /* ════════════════════════════════════════════════════════
@@ -2379,6 +3527,10 @@ async function saveReservation(payload) {
   return postJSON("/api/reservations", payload);
 }
 
+async function saveTestimonialReview(payload) {
+  return postJSON("/api/testimonials", payload);
+}
+
 function getUserLiveLocation() {
   if (!navigator.geolocation) {
     USER_LOCATION = "Not supported";
@@ -2403,44 +3555,109 @@ function getActiveHotelSlug() {
 
 function withHotelSlug(path) {
   const slug = getActiveHotelSlug();
-  const separator = path.includes("?") ? "&" : "?";
-  return `${path}${separator}hotel=${encodeURIComponent(slug)}`;
+  return buildHotelAwareHref(path, slug);
 }
 
-function updateHotelAwareLinks() {
-  const selectors = [
-    'a[href="menu.html"]',
-    'a[href="index.html#hero"]',
-    'a[href="index.html#about"]',
-    'a[href="index.html#events"]',
-    'a[href="index.html#contact"]',
-    'a[href="index.html#reservation"]'
-  ];
+function buildHotelAwareHref(rawHref, hotelSlug) {
+  const normalizedHref = typeof rawHref === "string" ? rawHref.trim() : "";
+  const normalizedSlug = typeof hotelSlug === "string" ? hotelSlug.trim() : "";
 
-  selectors.forEach((selector) => {
-    document.querySelectorAll(selector).forEach((link) => {
+  if (!normalizedHref || !normalizedSlug) {
+    return normalizedHref;
+  }
+
+  try {
+    const url = new URL(normalizedHref, window.location.href);
+    const pathname = url.pathname.toLowerCase();
+    let basePath = "";
+
+    if (pathname.endsWith("/menu.html") || pathname.endsWith("menu.html")) {
+      basePath = "menu.html";
+    } else if (pathname.endsWith("/index.html") || pathname.endsWith("index.html")) {
+      basePath = "index.html";
+    } else {
+      return normalizedHref;
+    }
+
+    url.searchParams.set("hotel", normalizedSlug);
+
+    const orderContextParams = getCurrentOrderContextLinkParams();
+    if (
+      orderContextParams.tableNumber &&
+      !url.searchParams.has("table") &&
+      !url.searchParams.has("tableNumber")
+    ) {
+      url.searchParams.set("table", orderContextParams.tableNumber);
+    }
+
+    if (orderContextParams.tableNumber && orderContextParams.orderSource && !url.searchParams.has("source")) {
+      url.searchParams.set("source", orderContextParams.orderSource);
+    }
+
+    const search = url.searchParams.toString();
+
+    return `${basePath}${search ? `?${search}` : ""}${url.hash || ""}`;
+  } catch (error) {
+    return normalizedHref;
+  }
+}
+
+function getCurrentOrderContextLinkParams() {
+  const params = new URLSearchParams(window.location.search);
+  const activeOrderContext = getActiveOrderContext();
+  const tableNumber =
+    params.get("table") ||
+    params.get("tableNumber") ||
+    activeOrderContext.tableNumber ||
+    "";
+  const orderSource =
+    params.get("source") ||
+    activeOrderContext.orderSource ||
+    (tableNumber ? "qr" : "");
+
+  return {
+    tableNumber: normalizeOrderContextText(tableNumber, 80),
+    orderSource: normalizeOrderContextText(orderSource, 40)
+  };
+}
+
+function updateHotelAwareLinks(hotelSlug = getActiveHotelSlug()) {
+  const normalizedSlug = typeof hotelSlug === "string" ? hotelSlug.trim() : "";
+  if (!normalizedSlug) return;
+
+  document
+    .querySelectorAll('a[href^="menu.html"], a[href^="index.html"]')
+    .forEach((link) => {
       const rawHref = link.getAttribute("href");
       if (!rawHref) return;
 
-      if (rawHref.startsWith("index.html#")) {
-        const hash = rawHref.split("#")[1];
-        link.setAttribute("href", withHotelSlug("index.html") + `#${hash}`);
-        return;
+      const nextHref = buildHotelAwareHref(rawHref, normalizedSlug);
+      if (nextHref) {
+        link.setAttribute("href", nextHref);
       }
-
-      link.setAttribute("href", withHotelSlug(rawHref));
     });
-  });
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
+    const queryHotelSlug =
+      typeof getHotelSlugFromQuery === "function" ? getHotelSlugFromQuery() : "";
+
+    if (queryHotelSlug) {
+      updateHotelAwareLinks(queryHotelSlug);
+    }
+
     await loadAppData();
+    applyLoadingScreenFromState();
+    applyThemeFromState();
     applyHotelConfigFromState();
     renderHotelContent();
+    renderTestimonialsSection(window.APP_STATE?.testimonials || []);
     updateHotelAwareLinks();
+    applySectionVisibilityFromState();
     bindReservationForm();
     bindEventInquiryForm();
+    bindTestimonialReviewForm();
     initMenuAndCart();
     console.log("App data loaded successfully", window.APP_STATE);
   } catch (error) {

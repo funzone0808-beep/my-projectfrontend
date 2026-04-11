@@ -15,6 +15,7 @@
     }
     #hotelFormSection,
 #menuFormSection,
+#galleryFormSection,
 #profileFormSection {
   max-height: 80vh;
   overflow-y: auto;
@@ -51,17 +52,126 @@ body {
     }
 
     .admin-toolbar {
+      display: grid;
+      gap: 14px;
+      margin: 24px 0;
+    }
+
+    .admin-toolbar-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      margin: 24px 0;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .admin-toolbar-group {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid #333;
+      background: #151515;
+      min-width: 0;
+      flex: 1 1 320px;
+    }
+
+    .admin-toolbar-side {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid #333;
+      background: #151515;
+      min-width: 260px;
+      flex: 0 1 280px;
+      align-content: start;
+    }
+
+    .admin-toolbar-label {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #c9a84c;
+    }
+
+    .admin-toolbar-help {
+      margin: 0;
+      color: #aaa;
+      font-size: 13px;
+      line-height: 1.5;
     }
 
     .admin-tabs {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
+    }
+
+    .admin-toolbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .admin-scope-card {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .admin-scope-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .admin-scope-item {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #333;
+      background: #141414;
+    }
+
+    .admin-scope-value {
+      display: block;
+      margin-top: 6px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .admin-form-help {
+      margin: 0 0 6px;
+      color: #b8b8b8;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .admin-field {
+      display: grid;
+      gap: 6px;
+    }
+
+    #hotelFormSection .admin-field-label,
+    #menuFormSection .admin-field-label,
+    #galleryFormSection .admin-field-label,
+    #notificationSettingsSection .admin-field-label,
+    #uploadSection .admin-field-label,
+    #qrTableLinkSection .admin-field-label,
+    #profileFormSection .admin-field-label {
+      display: block;
+      color: #f3f3f3;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .admin-field-hint {
+      margin: 0;
+      color: #9f9f9f;
+      font-size: 12px;
+      line-height: 1.4;
     }
 
     .admin-tab {
@@ -109,6 +219,175 @@ body {
       gap: 16px;
     }
 
+    .theme-helper-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: -4px;
+    }
+
+    .theme-helper-row .admin-meta {
+      margin: 0;
+    }
+
+    .theme-preview-card {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .theme-order-card {
+      display: grid;
+      gap: 10px;
+    }
+
+    .theme-order-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .theme-order-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid #333;
+      border-radius: 12px;
+      background: #141414;
+    }
+
+    .theme-order-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .theme-order-index {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(201, 168, 76, 0.16);
+      border: 1px solid rgba(201, 168, 76, 0.28);
+      color: #f3d98e;
+      font-size: 13px;
+      flex: 0 0 auto;
+    }
+
+    .theme-order-name {
+      color: #fff;
+    }
+
+    .theme-order-meta {
+      display: grid;
+      gap: 4px;
+    }
+
+    .theme-order-state {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(93, 191, 126, 0.3);
+      background: rgba(93, 191, 126, 0.12);
+      color: #b9efc9;
+      font-size: 12px;
+    }
+
+    .theme-order-state.is-hidden {
+      border-color: rgba(232, 129, 129, 0.3);
+      background: rgba(232, 129, 129, 0.12);
+      color: #ffc1c1;
+    }
+
+    .theme-order-actions {
+      display: flex;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .theme-order-actions .admin-tab {
+      padding: 8px 12px;
+    }
+
+    .theme-preview-top,
+    .theme-preview-surface,
+    .theme-preview-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .theme-preview-top,
+    .theme-preview-surface {
+      justify-content: space-between;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid #333;
+    }
+
+    .theme-preview-surface {
+      display: grid;
+      align-items: start;
+    }
+
+    .theme-preview-eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #c9a84c;
+      margin-bottom: 4px;
+    }
+
+    .theme-preview-title,
+    .theme-preview-body,
+    .theme-preview-muted {
+      margin: 0;
+    }
+
+    .theme-preview-muted {
+      font-size: 14px;
+      color: #bbb;
+    }
+
+    .theme-preview-outline-btn,
+    .theme-preview-primary-btn,
+    .theme-preview-chip {
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+
+    .theme-preview-outline-btn,
+    .theme-preview-primary-btn {
+      border: 1px solid #444;
+      cursor: default;
+    }
+
+    .theme-preview-outline-btn {
+      background: transparent;
+      color: #fff;
+    }
+
+    .theme-preview-primary-btn {
+      background: #c9a84c;
+      color: #111;
+    }
+
+    .theme-preview-chip {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(201, 168, 76, 0.16);
+      color: #fff;
+      border: 1px solid rgba(201, 168, 76, 0.3);
+    }
+
     .admin-meta {
       color: #bbb;
       font-size: 14px;
@@ -135,6 +414,84 @@ body {
       background: #333;
       color: #fff;
       font-size: 13px;
+    }
+
+    .admin-state-line {
+      display: grid;
+      gap: 8px;
+    }
+
+    .admin-state-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .admin-state-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #3a3a3a;
+      background: #232323;
+      color: #f3f3f3;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .admin-state-badge.is-success {
+      border-color: rgba(93, 191, 126, 0.35);
+      background: rgba(93, 191, 126, 0.14);
+      color: #b9efc9;
+    }
+
+    .admin-state-badge.is-warning {
+      border-color: rgba(232, 184, 103, 0.35);
+      background: rgba(232, 184, 103, 0.14);
+      color: #ffe2a8;
+    }
+
+    .admin-state-badge.is-danger {
+      border-color: rgba(232, 129, 129, 0.35);
+      background: rgba(232, 129, 129, 0.14);
+      color: #ffc1c1;
+    }
+
+    .admin-card-actions {
+      margin-top: 10px;
+    }
+
+    .admin-list-summary {
+      margin-bottom: 16px;
+    }
+
+    .admin-list-toolbar {
+      display: grid;
+      gap: 10px;
+    }
+
+    .admin-list-search {
+      width: 100%;
+      box-sizing: border-box;
+      background: #161616;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 12px 14px;
+      border-radius: 10px;
+    }
+
+    .admin-list-search:focus {
+      outline: none;
+      border-color: #c9a84c;
+      box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.18);
+    }
+
+    .admin-list-helper-text {
+      margin: 0;
+      color: #b8b8b8;
+      font-size: 13px;
+      line-height: 1.5;
     }
 
     .status-select {
@@ -226,11 +583,44 @@ body {
       cursor: pointer;
     }
 
+    #hotelFormSection label.admin-checkbox,
+    #menuFormSection label.admin-checkbox,
+    #galleryFormSection label.admin-checkbox,
+    #notificationSettingsSection label.admin-checkbox {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: #ddd;
+      cursor: pointer;
+    }
+
     #hotelFormSection input[type="checkbox"],
     #menuFormSection input[type="checkbox"] {
       width: auto;
       accent-color: #c9a84c;
       cursor: pointer;
+    }
+
+    #qrTableLinkSection input:not([type="hidden"]),
+    #qrTableLinkSection select {
+      width: 100%;
+      box-sizing: border-box;
+      background: #161616;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 12px 14px;
+      border-radius: 8px;
+    }
+
+    #qrTableLinkSection input:focus,
+    #qrTableLinkSection select:focus {
+      outline: none;
+      border-color: #c9a84c;
+      box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.2);
+    }
+
+    #qrTableLinkOutput {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
     }
   </style>
 </head>
@@ -258,43 +648,150 @@ body {
     </header>
 
     <div class="admin-toolbar">
-      <div class="admin-tabs">
-        <button class="admin-tab active" data-tab="orders">Orders</button>
-        <button class="admin-tab" data-tab="reservations">Reservations</button>
-        <button class="admin-tab" data-tab="inquiries">Inquiries</button>
-        <button class="admin-tab" data-tab="hotels">Hotels</button>
-        <button type="button" id="openHotelFormBtn" class="admin-tab">Hotel Form</button>
-        <button type="button" id="openMenuFormBtn" class="admin-tab">Menu Form</button>
-        <button type="button" id="openProfileFormBtn" class="admin-tab">Profile Form</button>
-        <button id="openUploadSectionBtn" class="admin-tab">Upload Image</button>
-        <button class="admin-tab" data-tab="menu-items">Menu Items</button>
-        
-      </div>
+      <div class="admin-toolbar-row">
+        <div class="admin-toolbar-group">
+          <p class="admin-toolbar-label">Browse Records</p>
+          <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="orders">Orders</button>
+            <button class="admin-tab" data-tab="reservations">Reservations</button>
+            <button class="admin-tab" data-tab="inquiries">Inquiries</button>
+            <button class="admin-tab" data-tab="notification-events">Notifications</button>
+            <button class="admin-tab" data-tab="hotels">Hotels</button>
+            <button class="admin-tab" data-tab="menu-items">Menu Items</button>
+            <button class="admin-tab" data-tab="gallery-items">Gallery Items</button>
+            <button class="admin-tab" data-tab="testimonials">Testimonials</button>
+          </div>
+        </div>
 
-      <select id="hotelFilter" class="admin-select">
-        <option value="">All Hotels</option>
-      </select>
-      <button id="adminLogoutBtn" class="admin-tab">Logout</button>
+        <div class="admin-toolbar-group">
+          <p class="admin-toolbar-label">Open Editors</p>
+          <div class="admin-toolbar-actions">
+            <button type="button" id="openHotelFormBtn" class="admin-tab">Hotel Form</button>
+            <button type="button" id="openMenuFormBtn" class="admin-tab">Menu Form</button>
+            <button type="button" id="openGalleryFormBtn" class="admin-tab">Gallery Form</button>
+            <button type="button" id="openTestimonialFormBtn" class="admin-tab">Testimonials Form</button>
+            <button type="button" id="openNotificationSettingsBtn" class="admin-tab">Notification Settings</button>
+            <button type="button" id="openProfileFormBtn" class="admin-tab">Profile Form</button>
+            <button type="button" id="openQrTableLinkBtn" class="admin-tab">QR Table Link</button>
+            <button id="openUploadSectionBtn" class="admin-tab">Upload Image</button>
+          </div>
+        </div>
+
+        <div class="admin-toolbar-side">
+          <p class="admin-toolbar-label">Hotel Scope</p>
+          <p class="admin-toolbar-help">Choose one hotel to narrow list views and auto-fill editor forms where supported.</p>
+          <select id="hotelFilter" class="admin-select">
+            <option value="">All Hotels</option>
+          </select>
+          <button id="adminLogoutBtn" class="admin-tab">Logout</button>
+        </div>
+      </div>
     </div>
+
+    <section id="adminScopeSummary" class="admin-card admin-scope-card">
+      <p class="admin-toolbar-label">Current Workspace</p>
+      <div class="admin-scope-grid">
+        <div class="admin-scope-item">
+          <span class="admin-meta">Viewing</span>
+          <strong id="adminScopeTabValue" class="admin-scope-value">Orders</strong>
+        </div>
+        <div class="admin-scope-item">
+          <span class="admin-meta">Hotel Scope</span>
+          <strong id="adminScopeHotelValue" class="admin-scope-value">All Hotels</strong>
+        </div>
+      </div>
+      <p id="adminScopeHelp" class="admin-toolbar-help">List views respect the selected hotel filter when available.</p>
+    </section>
 
     <main id="adminContent" class="admin-section">
       <p class="loading-state">Loading dashboard...</p>
     </main>
 
+    <section id="qrTableLinkSection" class="admin-card" style="display:none; margin-top: 20px;">
+      <h2>QR Table Order Link Helper</h2>
+      <p class="admin-form-help">Generate a safe table-specific menu URL. Use the generated URL in your QR code tool; it reuses the existing tenant menu, cart, checkout, and WhatsApp flow.</p>
+      <form id="qrTableLinkForm" class="admin-grid">
+        <div class="admin-field">
+          <label class="admin-field-label" for="qrLinkHotelSlugInput">Hotel Slug (Required)</label>
+          <input id="qrLinkHotelSlugInput" placeholder="hotel-sai-raj" maxlength="120" required />
+          <p class="admin-field-hint">This usually auto-fills from the selected hotel scope.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="qrLinkTableNumberInput">Table Number (Required)</label>
+          <input id="qrLinkTableNumberInput" placeholder="T5" maxlength="80" required />
+          <p class="admin-field-hint">Use the exact table label you want to appear in WhatsApp and admin orders.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="qrLinkTargetPageInput">Landing Page</label>
+          <select id="qrLinkTargetPageInput">
+            <option value="menu.html">Full Menu Page</option>
+            <option value="index.html">Homepage Menu Section</option>
+          </select>
+          <p class="admin-field-hint">Full Menu Page is safest for direct QR ordering.</p>
+        </div>
+
+        <button type="submit" class="status-btn">Generate QR Table Link</button>
+      </form>
+
+      <div class="admin-card" style="margin-top: 16px;">
+        <h3>Generated Link</h3>
+        <input id="qrTableLinkOutput" readonly placeholder="Generate a link first" />
+        <p id="qrTableLinkSummary" class="admin-field-hint">No QR table selected yet.</p>
+        <div class="status-row" style="margin-top: 12px;">
+          <a id="qrTableLinkPreview" class="admin-tab" href="#" target="_blank" rel="noopener noreferrer">Open Link</a>
+          <button id="copyQrTableLinkBtn" class="status-btn" type="button">Copy Link</button>
+        </div>
+        <p id="qrTableLinkHelp" class="admin-field-hint">No QR link generated yet.</p>
+      </div>
+    </section>
+
     <section id="hotelFormSection" class="admin-card" style="display:none;">
       <h2>Create / Update Hotel</h2>
+      <p class="admin-form-help">Use this form for the hotel record itself. Public profile, theme, menu, and gallery content stay in their own editors.</p>
       <form id="hotelForm" class="admin-grid">
         <input id="hotelId" name="id" type="hidden" />
 
-        <input id="hotelSlugInput" name="slug" placeholder="Slug (hotel-sai-raj)" required />
-        <input id="hotelNameInput" name="hotelName" placeholder="Hotel Name" required />
-        <input id="hotelWhatsappInput" name="whatsapp" type="tel" placeholder="WhatsApp Number" required />
-        <input id="hotelUpiInput" name="upi" placeholder="UPI ID" required />
-        <input id="hotelGstInput" name="gst" type="number" placeholder="GST %" required />
-        <input id="hotelPrimaryDomainInput" name="primaryDomain" placeholder="Primary Domain" />
-        <input id="hotelSubdomainInput" name="subdomain" placeholder="Subdomain" />
+        <div class="admin-field">
+          <label class="admin-field-label" for="hotelSlugInput">Hotel Slug (Required)</label>
+          <input id="hotelSlugInput" name="slug" placeholder="hotel-sai-raj" required />
+          <p class="admin-field-hint">Use the same stable slug across hotel profile, menu, gallery, uploads, and domain-aware routing.</p>
+        </div>
 
-        <label>
+        <div class="admin-field">
+          <label class="admin-field-label" for="hotelNameInput">Hotel Name (Required)</label>
+          <input id="hotelNameInput" name="hotelName" placeholder="Hotel Sai Raj" required />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="hotelWhatsappInput">WhatsApp Number (Required)</label>
+          <input id="hotelWhatsappInput" name="whatsapp" type="tel" placeholder="+91..." required />
+          <p class="admin-field-hint">This is the operator WhatsApp number used by existing live flows.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="hotelUpiInput">UPI ID (Required)</label>
+          <input id="hotelUpiInput" name="upi" placeholder="name@bank" required />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="hotelGstInput">GST Percentage (Required)</label>
+          <input id="hotelGstInput" name="gst" type="number" placeholder="5" required />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="hotelPrimaryDomainInput">Primary Domain</label>
+          <input id="hotelPrimaryDomainInput" name="primaryDomain" placeholder="hotel.example.com" />
+          <p class="admin-field-hint">Leave blank if this hotel currently runs only from subdomain or default tenant routing.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="hotelSubdomainInput">Subdomain</label>
+          <input id="hotelSubdomainInput" name="subdomain" placeholder="sai-raj" />
+        </div>
+
+        <label class="admin-checkbox">
           <input id="hotelIsActiveInput" name="isActive" type="checkbox" checked />
           Active
         </label>
@@ -305,22 +802,70 @@ body {
 
     <section id="menuFormSection" class="admin-card" style="display:none;">
       <h2>Create / Update Menu Item</h2>
+      <p class="admin-form-help">Use this form to create or update one menu record. It stays separate from hotel profile content and gallery management.</p>
       <form id="menuItemForm" class="admin-grid">
         <input id="menuItemDbId" name="id" type="hidden" />
 
-        <input id="menuHotelSlugInput" name="hotelSlug" placeholder="Hotel Slug" required />
-        <input id="menuCategoryInput" name="category" placeholder="Category (starters)" required />
-        <input id="menuItemIdInput" name="itemId" placeholder="Item ID (starter_1)" required />
-        <input id="menuNameInput" name="name" placeholder="Item Name" required />
-        <input id="menuDescriptionInput" name="description" placeholder="Description" />
-        <input id="menuPriceInput" name="price" type="number" placeholder="Price" required />
-        <input id="menuImageInput" name="image" type="url" placeholder="Image URL or path" />
-        <input id="menuAltInput" name="alt" placeholder="Alt text" />
-        <input id="menuBadgeInput" name="badge" placeholder="Badge" />
-        <input id="menuTagInput" name="tag" placeholder="Tag" />
-        <input id="menuSortOrderInput" name="sortOrder" type="number" placeholder="Sort Order" />
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuHotelSlugInput">Hotel Slug (Required)</label>
+          <input id="menuHotelSlugInput" name="hotelSlug" placeholder="hotel-sai-raj" required />
+          <p class="admin-field-hint">This usually auto-fills from the selected hotel scope unless you are editing an existing item.</p>
+        </div>
 
-        <label>
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuCategoryInput">Category (Required)</label>
+          <input id="menuCategoryInput" name="category" placeholder="starters" required />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuItemIdInput">Item ID (Required)</label>
+          <input id="menuItemIdInput" name="itemId" placeholder="starter_1" required />
+          <p class="admin-field-hint">Use a stable item key so future edits stay predictable.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuNameInput">Item Name (Required)</label>
+          <input id="menuNameInput" name="name" placeholder="Paneer Tikka" required />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuDescriptionInput">Description</label>
+          <input id="menuDescriptionInput" name="description" placeholder="Short item description" />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuPriceInput">Price (Required)</label>
+          <input id="menuPriceInput" name="price" type="number" placeholder="299" required />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuImageInput">Image URL or Path</label>
+          <input id="menuImageInput" name="image" type="url" placeholder="https://... or uploaded path" />
+          <p class="admin-field-hint">You can use the Upload Image tool separately and paste the resulting public URL here.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuAltInput">Alt Text</label>
+          <input id="menuAltInput" name="alt" placeholder="Describe the menu image" />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuBadgeInput">Badge</label>
+          <input id="menuBadgeInput" name="badge" placeholder="Chef Special" />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuTagInput">Tag</label>
+          <input id="menuTagInput" name="tag" placeholder="veg" />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="menuSortOrderInput">Sort Order</label>
+          <input id="menuSortOrderInput" name="sortOrder" type="number" placeholder="0" />
+          <p class="admin-field-hint">Lower numbers usually appear earlier in the current menu flow.</p>
+        </div>
+
+        <label class="admin-checkbox">
           <input id="menuIsAvailableInput" name="isAvailable" type="checkbox" checked />
           Available
         </label>
@@ -329,40 +874,447 @@ body {
       </form>
     </section>
 
+    <section id="galleryFormSection" class="admin-card" style="display:none;">
+      <h2>Create / Update Gallery Item</h2>
+      <p class="admin-form-help">Use this form to manage one gallery record. You can paste an existing image URL or use the upload helper to fill the image fields safely.</p>
+      <form id="galleryItemForm" class="admin-grid">
+        <input id="galleryItemDbId" name="id" type="hidden" />
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="galleryHotelSlugInput">Hotel Slug (Required)</label>
+          <input id="galleryHotelSlugInput" name="hotelSlug" placeholder="hotel-sai-raj" required />
+          <p class="admin-field-hint">This usually auto-fills from the selected hotel scope unless you are editing an existing gallery item.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="galleryImageUrlInput">Image URL (Required)</label>
+          <input id="galleryImageUrlInput" name="imageUrl" type="url" placeholder="https://..." required />
+          <p class="admin-field-hint">Paste a public image URL here, or use the upload helper below to fill this field automatically.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="galleryStoragePathInput">Storage Path</label>
+          <input id="galleryStoragePathInput" name="storagePath" placeholder="hotel-sai-raj/gallery/file.jpg" />
+          <p class="admin-field-hint">Optional for manual URLs. Upload helper will fill this automatically when the image comes from storage.</p>
+        </div>
+
+        <button id="galleryUploadHelperBtn" type="button" class="admin-tab">Upload Image For This Gallery Item</button>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="galleryAltInput">Alt Text</label>
+          <input id="galleryAltInput" name="alt" placeholder="Describe the gallery image" />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="galleryLayoutVariantInput">Layout Variant</label>
+          <select id="galleryLayoutVariantInput" name="layoutVariant">
+            <option value="standard">Standard</option>
+            <option value="large">Large</option>
+            <option value="tall">Tall</option>
+            <option value="wide">Wide</option>
+          </select>
+          <p class="admin-field-hint">Keep the current layout pattern by choosing one of the supported preset variants only.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="gallerySortOrderInput">Sort Order</label>
+          <input id="gallerySortOrderInput" name="sortOrder" type="number" placeholder="0" />
+          <p class="admin-field-hint">Lower numbers usually appear earlier in the current gallery flow.</p>
+        </div>
+
+        <label class="admin-checkbox">
+          <input id="galleryIsActiveInput" name="isActive" type="checkbox" checked />
+          Active
+        </label>
+
+        <button type="submit" class="status-btn">Save Gallery Item</button>
+      </form>
+    </section>
+
+    <section id="notificationSettingsSection" class="admin-card" style="display:none; margin-top: 20px;">
+      <h2>Per-Hotel Notification Settings</h2>
+      <p class="admin-sub">These settings are private and control optional delivery behavior for one hotel only.</p>
+      <p class="admin-form-help">This editor changes notification delivery rules after business records are already saved. It does not replace your existing live save flows.</p>
+
+      <form id="notificationSettingsForm" class="admin-grid">
+        <div class="admin-field">
+          <label class="admin-field-label" for="notificationSettingsHotelSlugInput">Hotel Slug (Required)</label>
+          <input id="notificationSettingsHotelSlugInput" placeholder="hotel-sai-raj" required />
+          <p class="admin-field-hint">This usually auto-fills from the selected hotel scope when one hotel is selected.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="notificationOwnerEmailInput">Owner Notification Email</label>
+          <input id="notificationOwnerEmailInput" type="email" placeholder="owner@example.com" />
+          <p class="admin-field-hint">Needed only when email delivery is enabled for this hotel.</p>
+        </div>
+
+        <label class="admin-checkbox">
+          <input id="notificationEmailEnabledInput" type="checkbox" />
+          Enable Email Delivery For This Hotel
+        </label>
+
+        <label class="admin-checkbox">
+          <input id="notificationNotifyOrderInput" type="checkbox" checked />
+          Notify On New Order
+        </label>
+
+        <label class="admin-checkbox">
+          <input id="notificationNotifyReservationInput" type="checkbox" checked />
+          Notify On New Reservation
+        </label>
+
+        <label class="admin-checkbox">
+          <input id="notificationNotifyInquiryInput" type="checkbox" checked />
+          Notify On New Inquiry
+        </label>
+
+        <button type="submit" class="status-btn">Save Notification Settings</button>
+      </form>
+    </section>
+
+    <section id="testimonialFormSection" class="admin-card" style="display:none; margin-top: 20px;">
+      <h2>Create / Update Testimonial</h2>
+      <p class="admin-form-help">Use this form to create or update one hotel-specific testimonial record. Public display still depends on the testimonial visibility and moderation state.</p>
+      <form id="testimonialForm" class="admin-grid">
+        <input id="testimonialDbId" name="id" type="hidden" />
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="testimonialHotelSlugInput">Hotel Slug (Required)</label>
+          <input id="testimonialHotelSlugInput" name="hotelSlug" placeholder="hotel-sai-raj" required />
+          <p class="admin-field-hint">This usually auto-fills from the selected hotel scope unless you are editing an existing testimonial.</p>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="testimonialNameInput">Guest Name (Required)</label>
+          <input id="testimonialNameInput" name="name" placeholder="Guest name" required />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="testimonialRoleInput">Guest Role</label>
+          <input id="testimonialRoleInput" name="role" placeholder="Family Dinner" />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="testimonialTextInput">Review Text (Required)</label>
+          <textarea id="testimonialTextInput" name="text" rows="5" placeholder="Guest review or testimonial" required></textarea>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="testimonialStarsInput">Stars</label>
+          <input id="testimonialStarsInput" name="stars" type="number" min="1" max="5" placeholder="5" />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="testimonialAvatarInput">Avatar URL</label>
+          <input id="testimonialAvatarInput" name="avatar" type="url" placeholder="https://..." />
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-field-label" for="testimonialSortOrderInput">Sort Order</label>
+          <input id="testimonialSortOrderInput" name="sortOrder" type="number" placeholder="0" />
+        </div>
+
+        <label class="admin-checkbox">
+          <input id="testimonialIsActiveInput" name="isActive" type="checkbox" checked />
+          Active
+        </label>
+
+        <label class="admin-checkbox">
+          <input id="testimonialIsApprovedInput" name="isApproved" type="checkbox" checked />
+          Approved For Public Display
+        </label>
+
+        <button type="submit" class="status-btn">Save Testimonial</button>
+      </form>
+    </section>
+
     <section id="profileFormSection" class="admin-card" style="display:none; margin-top: 20px;">
   <h2>Create / Update Hotel Profile</h2>
+  <p class="admin-form-help">This editor controls hotel-facing profile content. We are only improving the form presentation here, not changing the current profile/theme save flow.</p>
 
   <form id="profileForm" class="admin-grid">
-    <input id="profileHotelSlugInput" placeholder="Hotel Slug (hotel-sai-raj)" />
-    <input id="profileHotelNameInput" placeholder="Hotel Name" />
-    <input id="profileTaglineInput" placeholder="Tagline" />
-    <input id="profileWhatsappInput" placeholder="Owner WhatsApp Number" />
-    <input id="profileUpiInput" placeholder="Owner UPI ID" />
-    <input id="profileGstInput" type="number" placeholder="GST %" />
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHotelSlugInput">Hotel Slug (Required)</label>
+      <input id="profileHotelSlugInput" placeholder="hotel-sai-raj" />
+      <p class="admin-field-hint">This should match the hotel record slug so profile content loads for the correct tenant.</p>
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHotelNameInput">Hotel Name (Required)</label>
+      <input id="profileHotelNameInput" placeholder="Hotel Sai Raj" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileTaglineInput">Tagline</label>
+      <input id="profileTaglineInput" placeholder="Short headline for the public site" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileWhatsappInput">Owner WhatsApp Number</label>
+      <input id="profileWhatsappInput" placeholder="+91..." />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileUpiInput">Owner UPI ID</label>
+      <input id="profileUpiInput" placeholder="name@bank" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileGstInput">GST Percentage</label>
+      <input id="profileGstInput" type="number" placeholder="5" />
+    </div>
 
     <h3>Branding</h3>
-    <input id="profileBrandPrimaryInput" placeholder="Logo Primary Text" />
-    <input id="profileBrandSecondaryInput" placeholder="Logo Secondary Text" />
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileBrandPrimaryInput">Logo Primary Text</label>
+      <input id="profileBrandPrimaryInput" placeholder="Primary brand line" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileBrandSecondaryInput">Logo Secondary Text</label>
+      <input id="profileBrandSecondaryInput" placeholder="Secondary brand line" />
+    </div>
+
+    <h3>Theme (Safe Fields)</h3>
+    <p class="admin-sub">Leave fields blank to keep the current/default value. Use valid CSS color values and border-radius values only.</p>
+    <div class="theme-helper-row">
+      <span class="admin-meta">Preview updates live as you type.</span>
+      <button id="profileThemeResetBtn" type="button" class="admin-tab">Reset Theme Fields</button>
+    </div>
+    <input id="profileThemePrimaryInput" placeholder="Primary Accent Color (e.g. #c9a84c)" />
+    <input id="profileThemePrimaryLightInput" placeholder="Primary Light Color (e.g. #e8d08a)" />
+    <input id="profileThemePrimaryDarkInput" placeholder="Primary Dark Color (e.g. #a07830)" />
+    <input id="profileThemeBackgroundInput" placeholder="Background Color (e.g. #fbf8f3)" />
+    <input id="profileThemeBackgroundAltInput" placeholder="Alternate Background Color (e.g. #f3ede3)" />
+    <input id="profileThemeTextInput" placeholder="Text Color (e.g. #333333)" />
+    <input id="profileThemeTextMutedInput" placeholder="Muted Text Color (e.g. #6b6b6b)" />
+    <input id="profileThemeRadiusBaseInput" placeholder="Base Radius (e.g. 16px)" />
+    <input id="profileThemeRadiusSmallInput" placeholder="Small Radius (e.g. 8px)" />
+    <select id="profileThemeTypographyPresetInput">
+      <option value="">Typography Preset (Keep Current / Default)</option>
+      <option value="default">Default Font Pair (Cormorant Garamond + Jost)</option>
+      <option value="system">System Font Pair (Georgia + System UI)</option>
+    </select>
+    <p class="admin-sub">Preset only for now. No custom font names yet.</p>
+    <select id="profileThemeContainerPresetInput">
+      <option value="">Container Width (Keep Current / Default)</option>
+      <option value="compact">Compact (1120px)</option>
+      <option value="default">Default (1280px)</option>
+      <option value="wide">Wide (1440px)</option>
+    </select>
+    <p class="admin-sub">Layout preset only for now. No custom width values yet.</p>
+    <select id="profileThemeButtonPresetInput">
+      <option value="">Button Style (Keep Current / Default)</option>
+      <option value="default">Default (Pill + Gradient)</option>
+      <option value="solid">Solid (Rounded + Accent)</option>
+      <option value="crisp">Crisp (Sharp + High Contrast)</option>
+    </select>
+    <p class="admin-sub">Preset only for now. No custom button CSS yet.</p>
+    <select id="profileThemeHeroLayoutPresetInput">
+      <option value="">Hero Layout (Keep Current / Default)</option>
+      <option value="default">Default Hero Layout</option>
+      <option value="split">Split Hero Layout</option>
+      <option value="stacked">Stacked Hero Layout</option>
+    </select>
+    <p class="admin-sub">Hero layout preset only for now. No hero content fields are changed by this control. Choosing Default returns to the built-in hero layout safely.</p>
+    <h4>Loading Screen (Safe Fields)</h4>
+    <p class="admin-sub">These fields only change the existing homepage loader text and colors. Leaving any field blank keeps the current built-in loader fallback.</p>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileThemeLoadingLogoPrimaryInput">Loader Logo Primary Text</label>
+      <input id="profileThemeLoadingLogoPrimaryInput" placeholder="H" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileThemeLoadingLogoSecondaryInput">Loader Logo Secondary Text</label>
+      <input id="profileThemeLoadingLogoSecondaryInput" placeholder="SR" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileThemeLoadingTaglineInput">Loader Tagline</label>
+      <input id="profileThemeLoadingTaglineInput" placeholder="Preparing your experience..." />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileThemeLoadingBackgroundColorInput">Loader Background Color</label>
+      <input id="profileThemeLoadingBackgroundColorInput" placeholder="#0c0c0c" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileThemeLoadingAccentColorInput">Loader Accent Color</label>
+      <input id="profileThemeLoadingAccentColorInput" placeholder="#c9a84c" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileThemeLoadingTextColorInput">Loader Text Color</label>
+      <input id="profileThemeLoadingTextColorInput" placeholder="rgba(255,255,255,0.8)" />
+    </div>
+    <p class="admin-sub">Safe visibility toggles are limited to about, events, reservation, gallery, and testimonials for now.</p>
+    <label>
+      <input id="profileThemeShowAboutInput" type="checkbox" checked />
+      Show About Section
+    </label>
+    <label>
+      <input id="profileThemeShowEventsInput" type="checkbox" checked />
+      Show Events Section
+    </label>
+    <label>
+      <input id="profileThemeShowReservationInput" type="checkbox" checked />
+      Show Reservation Section
+    </label>
+    <label>
+      <input id="profileThemeShowGalleryInput" type="checkbox" checked />
+      Show Gallery Section
+    </label>
+    <label>
+      <input id="profileThemeShowTestimonialsInput" type="checkbox" checked />
+      Show Testimonials Section
+    </label>
+    <div class="admin-card theme-order-card">
+      <h4>Homepage Section Order</h4>
+      <p class="admin-sub">Move sections up or down. Hero stays fixed at the top, and footer/cart helpers stay untouched.</p>
+      <p class="admin-sub">Hidden sections keep their saved position so they return in the same place when you turn them back on.</p>
+      <div id="profileThemeSectionOrderList" class="theme-order-list" aria-label="Homepage section order"></div>
+    </div>
+    <div id="profileThemePreviewCard" class="admin-card theme-preview-card">
+      <div id="profileThemePreviewTop" class="theme-preview-top">
+        <div>
+          <div id="profileThemePreviewEyebrow" class="theme-preview-eyebrow">Theme Preview</div>
+          <h4 id="profileThemePreviewTitle" class="theme-preview-title">Safe Theme Fields</h4>
+        </div>
+        <button id="profileThemePreviewOutlineBtn" type="button" class="theme-preview-outline-btn">Outline</button>
+      </div>
+      <div id="profileThemePreviewSurface" class="theme-preview-surface">
+        <p id="profileThemePreviewBody" class="theme-preview-body">
+          This preview reflects only the safe theme controls from this form.
+        </p>
+        <p id="profileThemePreviewMuted" class="theme-preview-muted">
+          Colors and radius update here without changing any live backend flow.
+        </p>
+        <div class="theme-preview-actions">
+          <button id="profileThemePreviewPrimaryBtn" type="button" class="theme-preview-primary-btn">Primary Button</button>
+          <span id="profileThemePreviewChip" class="theme-preview-chip">Accent</span>
+        </div>
+      </div>
+    </div>
 
     <h3>Hero</h3>
-    <input id="profileHeroLine1Input" placeholder="Hero Title Line 1" />
-    <input id="profileHeroLine2Input" placeholder="Hero Title Line 2" />
-    <input id="profileHeroLine3Input" placeholder="Hero Title Line 3" />
-    <textarea id="profileHeroStatsInput" rows="6" placeholder='Hero Stats JSON, e.g. [{"label":"Since","value":"1999"}]'></textarea>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroLine1Input">Hero Title Line 1</label>
+      <input id="profileHeroLine1Input" placeholder="Welcome line or short opening" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroLine2Input">Hero Title Line 2</label>
+      <input id="profileHeroLine2Input" placeholder="Main headline line" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroLine3Input">Hero Title Line 3</label>
+      <input id="profileHeroLine3Input" placeholder="Optional supporting line" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroStatsInput">Hero Stats JSON</label>
+      <textarea id="profileHeroStatsInput" rows="6" placeholder='[{"label":"Since","value":"1999"}]'></textarea>
+      <p class="admin-field-hint">Keep this as a JSON array of small stat objects. Existing parser expects valid JSON here.</p>
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroScenePresetInput">Hero Scene Preset</label>
+      <select id="profileHeroScenePresetInput">
+        <option value="">Keep Current / Default</option>
+        <option value="default">Default</option>
+        <option value="luxury">Luxury</option>
+        <option value="warm">Warm</option>
+        <option value="minimal">Minimal</option>
+        <option value="family">Family</option>
+      </select>
+      <p class="admin-field-hint">Optional for now. This is a safe config label and fallback bridge, not a full scene redesign.</p>
+    </div>
+    <div class="admin-field">
+      <label class="admin-checkbox" for="profileHeroSceneEnabledInput">
+        <input id="profileHeroSceneEnabledInput" type="checkbox" checked />
+        Enable 3D Hero Scene
+      </label>
+      <p class="admin-field-hint">When disabled, the current hero text stays in place and the page falls back to a safe CSS hero background.</p>
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroSceneToneMappingExposureInput">Hero Scene Tone Mapping Exposure</label>
+      <input id="profileHeroSceneToneMappingExposureInput" type="number" step="0.1" min="0.2" max="3" placeholder="1.2" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroSceneCameraDistanceInput">Hero Scene Camera Distance</label>
+      <input id="profileHeroSceneCameraDistanceInput" type="number" step="0.1" min="6" max="24" placeholder="12" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroSceneAmbientLightIntensityInput">Hero Scene Ambient Light Intensity</label>
+      <input id="profileHeroSceneAmbientLightIntensityInput" type="number" step="0.1" min="0" max="4" placeholder="0.5" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroSceneGoldLightIntensityInput">Hero Scene Gold Light Intensity</label>
+      <input id="profileHeroSceneGoldLightIntensityInput" type="number" step="0.1" min="0" max="8" placeholder="3.5" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroSceneWarmLightIntensityInput">Hero Scene Warm Light Intensity</label>
+      <input id="profileHeroSceneWarmLightIntensityInput" type="number" step="0.1" min="0" max="8" placeholder="2.5" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroSceneRimLightIntensityInput">Hero Scene Rim Light Intensity</label>
+      <input id="profileHeroSceneRimLightIntensityInput" type="number" step="0.1" min="0" max="4" placeholder="0.8" />
+      <p class="admin-field-hint">Leave these scene fields empty to keep the current default scene behavior.</p>
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileHeroSceneParticleCountInput">Hero Scene Particle Count</label>
+      <input id="profileHeroSceneParticleCountInput" type="number" step="1" min="0" max="600" placeholder="280" />
+      <p class="admin-field-hint">Optional. Lower values make the scene lighter; higher values make it denser. Leave empty to keep the preset/default density.</p>
+    </div>
 
     <h3>About</h3>
-    <input id="profileAboutEyebrowInput" placeholder="About Eyebrow" />
-    <input id="profileAboutTitleInput" placeholder="About Title" />
-    <textarea id="profileAboutParagraphsInput" rows="8" placeholder='About Paragraphs JSON, e.g. ["Para 1","Para 2"]'></textarea>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileAboutEyebrowInput">About Eyebrow</label>
+      <input id="profileAboutEyebrowInput" placeholder="Short section label" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileAboutTitleInput">About Title</label>
+      <input id="profileAboutTitleInput" placeholder="About section heading" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileAboutParagraphsInput">About Paragraphs JSON</label>
+      <textarea id="profileAboutParagraphsInput" rows="8" placeholder='["Paragraph 1","Paragraph 2"]'></textarea>
+      <p class="admin-field-hint">Keep this as a JSON array of strings. Each item becomes one paragraph in the current public flow.</p>
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileAboutPrimaryImageUrlInput">About Primary Image URL</label>
+      <input id="profileAboutPrimaryImageUrlInput" type="url" placeholder="https://... or uploaded path" />
+      <button id="profileAboutPrimaryImageUploadBtn" type="button" class="admin-tab">Upload About Primary Image</button>
+      <p class="admin-field-hint">Optional. Leave empty to keep the current built-in About main image as fallback.</p>
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileAboutPrimaryImageAltInput">About Primary Image Alt Text</label>
+      <input id="profileAboutPrimaryImageAltInput" placeholder="Describe the main About image" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileAboutSecondaryImageUrlInput">About Secondary Image URL</label>
+      <input id="profileAboutSecondaryImageUrlInput" type="url" placeholder="https://... or uploaded path" />
+      <button id="profileAboutSecondaryImageUploadBtn" type="button" class="admin-tab">Upload About Secondary Image</button>
+      <p class="admin-field-hint">Optional. Leave empty to keep the current built-in About secondary image as fallback.</p>
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileAboutSecondaryImageAltInput">About Secondary Image Alt Text</label>
+      <input id="profileAboutSecondaryImageAltInput" placeholder="Describe the secondary About image" />
+    </div>
 
     <h3>Features</h3>
-    <textarea id="profileFeaturesInput" rows="8" placeholder='Features JSON array'></textarea>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileFeaturesInput">Features JSON Array</label>
+      <textarea id="profileFeaturesInput" rows="8" placeholder='[{"title":"Ocean View","description":"..."}]'></textarea>
+      <p class="admin-field-hint">Keep this as a JSON array. Use the same feature object shape your current public rendering already expects.</p>
+    </div>
 
     <h3>Events</h3>
-    <input id="profileEventsEyebrowInput" placeholder="Events Eyebrow" />
-    <input id="profileEventsTitleInput" placeholder="Events Title" />
-    <input id="profileEventsSubtitleInput" placeholder="Events Subtitle" />
-    <textarea id="profileEventsCardsInput" rows="8" placeholder='Events Cards JSON array'></textarea>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileEventsEyebrowInput">Events Eyebrow</label>
+      <input id="profileEventsEyebrowInput" placeholder="Short section label" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileEventsTitleInput">Events Title</label>
+      <input id="profileEventsTitleInput" placeholder="Events section heading" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileEventsSubtitleInput">Events Subtitle</label>
+      <input id="profileEventsSubtitleInput" placeholder="Short supporting line" />
+    </div>
+    <div class="admin-field">
+      <label class="admin-field-label" for="profileEventsCardsInput">Events Cards JSON</label>
+      <textarea id="profileEventsCardsInput" rows="8" placeholder='[{"title":"Wedding","description":"..."}]'></textarea>
+      <p class="admin-field-hint">Keep this as a JSON array of event cards so the current events section can render it safely.</p>
+    </div>
 
     <h3>Reservation</h3>
     <input id="profileReservationEyebrowInput" placeholder="Reservation Eyebrow" />
@@ -397,20 +1349,53 @@ body {
 
 <section id="uploadSection" class="admin-card" style="display:none; margin-top: 20px;">
   <h2>Upload Image</h2>
+  <p class="admin-form-help">Use this helper to upload a file into storage and optionally fill another admin form field with the public URL and storage path.</p>
 
   <form id="uploadForm" class="admin-grid">
-    <input id="uploadHotelSlugInput" placeholder="Hotel Slug (hotel-sai-raj)" />
-    <input id="uploadFolderInput" placeholder="Folder (menu, branding, gallery)" value="menu" />
-    <input id="uploadTargetFieldInput" placeholder="Target Field ID to fill (optional)" />
-    <input id="uploadFileInput" type="file" accept="image/*" />
+    <div class="admin-field">
+      <label class="admin-field-label" for="uploadHotelSlugInput">Hotel Slug</label>
+      <input id="uploadHotelSlugInput" placeholder="hotel-sai-raj" />
+      <p class="admin-field-hint">Leave this as the selected hotel when uploading an asset for one hotel. Use shared only when the file is not hotel-specific.</p>
+    </div>
+
+    <div class="admin-field">
+      <label class="admin-field-label" for="uploadFolderInput">Storage Folder</label>
+      <input id="uploadFolderInput" placeholder="menu, branding, gallery" value="menu" />
+      <p class="admin-field-hint">Examples: <code>menu</code>, <code>branding</code>, <code>gallery</code>.</p>
+    </div>
+
+    <div class="admin-field">
+      <label class="admin-field-label" for="uploadTargetFieldInput">Target Field ID</label>
+      <input id="uploadTargetFieldInput" placeholder="Optional field ID to receive the public URL" />
+      <p class="admin-field-hint">Optional. If provided, the uploaded public URL is written into that field automatically.</p>
+    </div>
+
+    <div class="admin-field">
+      <label class="admin-field-label" for="uploadStorageTargetFieldInput">Storage Path Target Field ID</label>
+      <input id="uploadStorageTargetFieldInput" placeholder="Optional field ID to receive the storage path" />
+      <p class="admin-field-hint">Optional. Useful when another form stores both public URL and storage path.</p>
+    </div>
+
+    <div class="admin-field">
+      <label class="admin-field-label" for="uploadFileInput">Choose Image File</label>
+      <input id="uploadFileInput" type="file" accept="image/*" />
+    </div>
+
     <button type="submit" class="status-btn">Upload Image</button>
   </form>
 
   <div id="uploadResult" style="margin-top: 16px;"></div>
-<div style="margin-top: 16px;">
-  <input id="deleteStoragePathInput" placeholder="Storage path to delete, e.g. hotel-sai-raj/menu/123-file.jpg" />
-  <button id="deleteUploadedFileBtn" class="status-btn" type="button">Delete Uploaded File</button>
-</div>
+
+  <div class="admin-card" style="margin-top: 16px;">
+    <h3>Delete Uploaded File</h3>
+    <p class="admin-form-help">This removes the file from storage by exact path. Use carefully.</p>
+    <div class="admin-field">
+      <label class="admin-field-label" for="deleteStoragePathInput">Storage Path</label>
+      <input id="deleteStoragePathInput" placeholder="hotel-sai-raj/menu/123-file.jpg" />
+      <p class="admin-field-hint">Paste the exact stored file path returned after upload.</p>
+    </div>
+    <button id="deleteUploadedFileBtn" class="status-btn" type="button">Delete Uploaded File</button>
+  </div>
 
 </section>
 

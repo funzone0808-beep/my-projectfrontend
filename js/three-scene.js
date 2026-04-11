@@ -7,7 +7,76 @@
   "use strict";
 
   const canvas = document.getElementById("heroCanvas");
+  const heroSection = document.getElementById("hero");
   if (!canvas || typeof THREE === "undefined") return;
+
+  const HERO_SCENE_DEFAULTS = {
+    enabled: true,
+    preset: "default",
+    toneMappingExposure: 1.2,
+    cameraDistance: 12,
+    ambientLightIntensity: 0.5,
+    goldLightIntensity: 3.5,
+    warmLightIntensity: 2.5,
+    rimLightIntensity: 0.8,
+    particleCount: 280,
+  };
+  const HERO_SCENE_MAX_PARTICLE_COUNT = 600;
+
+  function getFiniteRuntimeValue(value, fallback) {
+    const candidate = Number(value);
+    return Number.isFinite(candidate) ? candidate : fallback;
+  }
+
+  function getIntegerRuntimeValue(value, fallback, min, max) {
+    const candidate = Math.round(getFiniteRuntimeValue(value, fallback));
+    return Math.min(Math.max(candidate, min), max);
+  }
+
+  function getHeroSceneRuntimeConfig() {
+    const sceneConfig = window.APP_STATE?.heroScene;
+
+    return {
+      enabled:
+        typeof sceneConfig?.enabled === "boolean"
+          ? sceneConfig.enabled
+          : HERO_SCENE_DEFAULTS.enabled,
+      preset:
+        typeof sceneConfig?.preset === "string" && sceneConfig.preset.trim()
+          ? sceneConfig.preset.trim().toLowerCase()
+          : HERO_SCENE_DEFAULTS.preset,
+      toneMappingExposure: getFiniteRuntimeValue(
+        sceneConfig?.toneMappingExposure,
+        HERO_SCENE_DEFAULTS.toneMappingExposure,
+      ),
+      cameraDistance: getFiniteRuntimeValue(
+        sceneConfig?.cameraDistance,
+        HERO_SCENE_DEFAULTS.cameraDistance,
+      ),
+      ambientLightIntensity: getFiniteRuntimeValue(
+        sceneConfig?.ambientLightIntensity,
+        HERO_SCENE_DEFAULTS.ambientLightIntensity,
+      ),
+      goldLightIntensity: getFiniteRuntimeValue(
+        sceneConfig?.goldLightIntensity,
+        HERO_SCENE_DEFAULTS.goldLightIntensity,
+      ),
+      warmLightIntensity: getFiniteRuntimeValue(
+        sceneConfig?.warmLightIntensity,
+        HERO_SCENE_DEFAULTS.warmLightIntensity,
+      ),
+      rimLightIntensity: getFiniteRuntimeValue(
+        sceneConfig?.rimLightIntensity,
+        HERO_SCENE_DEFAULTS.rimLightIntensity,
+      ),
+      particleCount: getIntegerRuntimeValue(
+        sceneConfig?.particleCount,
+        HERO_SCENE_DEFAULTS.particleCount,
+        0,
+        HERO_SCENE_MAX_PARTICLE_COUNT,
+      ),
+    };
+  }
 
   /* ── Renderer ─────────────────────────────────────── */
   const renderer = new THREE.WebGLRenderer({
@@ -183,10 +252,10 @@
   });
 
   /* ── Particle Field ───────────────────────────────── */
-  const particleCount = 280;
-  const positions = new Float32Array(particleCount * 3);
+  let activeParticleCount = getHeroSceneRuntimeConfig().particleCount;
+  const positions = new Float32Array(HERO_SCENE_MAX_PARTICLE_COUNT * 3);
   const particleSpeeds = [];
-  for (let i = 0; i < particleCount; i++) {
+  for (let i = 0; i < HERO_SCENE_MAX_PARTICLE_COUNT; i++) {
     positions[i * 3] = (Math.random() - 0.5) * 30;
     positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
     positions[i * 3 + 2] = (Math.random() - 0.5) * 15 - 5;
@@ -197,6 +266,7 @@
   }
   const partGeo = new THREE.BufferGeometry();
   partGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  partGeo.setDrawRange(0, activeParticleCount);
   const partMat = new THREE.PointsMaterial({
     color: 0xd4a843,
     size: 0.06,
@@ -236,6 +306,31 @@
   function animate() {
     requestAnimationFrame(animate);
     const elapsed = clock.getElapsedTime();
+    const sceneConfig = getHeroSceneRuntimeConfig();
+    const sceneEnabled = sceneConfig.enabled !== false;
+
+    renderer.toneMappingExposure = sceneConfig.toneMappingExposure;
+    ambientLight.intensity = sceneConfig.ambientLightIntensity;
+    goldLight.intensity = sceneConfig.goldLightIntensity;
+    warmLight.intensity = sceneConfig.warmLightIntensity;
+    rimLight.intensity = sceneConfig.rimLightIntensity;
+    camera.position.z = sceneConfig.cameraDistance;
+    canvas.style.opacity = sceneEnabled ? "1" : "0";
+
+    if (activeParticleCount !== sceneConfig.particleCount) {
+      activeParticleCount = sceneConfig.particleCount;
+      partGeo.setDrawRange(0, activeParticleCount);
+    }
+
+    if (heroSection) {
+      heroSection.dataset.heroScenePreset = sceneConfig.preset;
+      heroSection.dataset.heroSceneEnabled = sceneEnabled ? "true" : "false";
+    }
+
+    if (!sceneEnabled) {
+      renderer.clear();
+      return;
+    }
 
     // Smooth mouse follow
     targetX += (mouseX - targetX) * 0.04;
@@ -262,7 +357,7 @@
 
     // Particle drift
     const posAttr = partGeo.attributes.position;
-    for (let i = 0; i < particleCount; i++) {
+    for (let i = 0; i < activeParticleCount; i++) {
       posAttr.array[i * 3] += particleSpeeds[i].x;
       posAttr.array[i * 3 + 1] += particleSpeeds[i].y;
       // Wrap

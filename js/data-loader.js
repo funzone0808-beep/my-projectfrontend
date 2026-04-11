@@ -5,7 +5,15 @@ window.APP_STATE = {
   menu: null,
   testimonials: [],
   gallery: [],
-  activeHotelSlug: null
+  heroScene: {},
+  loadingScreen: {},
+  theme: {},
+  activeHotelSlug: null,
+  orderContext: {
+    orderType: "standard",
+    tableNumber: "",
+    orderSource: "website"
+  }
 };
 
 // const FRONTEND_DEFAULT_HOTEL_SLUG = "hotel-sai-raj";
@@ -14,19 +22,140 @@ window.APP_STATE = {
 // const PUBLIC_API_BASE = `${API_BASE}/public`;
 
 const FRONTEND_DEFAULT_HOTEL_SLUG =
-  process.env.REACT_APP_DEFAULT_HOTEL_SLUG || "hotel-sai-raj";
+  window.APP_RUNTIME_CONFIG?.DEFAULT_HOTEL_SLUG || "hotel-sai-raj";
 
 const API_BASE =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost:5000/api";
-
+  window.APP_RUNTIME_CONFIG?.API_BASE_URL || "http://localhost:5000/api";
 
 const TENANT_API_BASE = `${API_BASE}/tenant`;
 const PUBLIC_API_BASE = `${API_BASE}/public`;
+const SUPPORTED_THEME_SECTION_ORDER = [
+  "about",
+  "menu",
+  "reservation",
+  "events",
+  "gallery",
+  "testimonials",
+  "contact"
+];
+const SUPPORTED_THEME_HERO_LAYOUT_VARIANTS = ["default", "split", "stacked"];
+const SUPPORTED_GALLERY_LAYOUT_VARIANTS = ["standard", "large", "tall", "wide"];
+const MENU_CATEGORY_ALIASES = {
+  starter: "starters",
+  starters: "starters",
+  appetizer: "starters",
+  appetizers: "starters",
+  snack: "starters",
+  snacks: "starters",
+  main: "mains",
+  mains: "mains",
+  maincourse: "mains",
+  maincourses: "mains",
+  dessert: "desserts",
+  desserts: "desserts",
+  sweet: "desserts",
+  sweets: "desserts",
+  drink: "drinks",
+  drinks: "drinks",
+  beverage: "drinks",
+  beverages: "drinks"
+};
+const SUPPORTED_HERO_SCENE_PRESETS = [
+  "default",
+  "luxury",
+  "warm",
+  "minimal",
+  "family"
+];
+const DEFAULT_HERO_SCENE_CONFIG = {
+  enabled: true,
+  preset: "default",
+  toneMappingExposure: 1.2,
+  cameraDistance: 12,
+  ambientLightIntensity: 0.5,
+  goldLightIntensity: 3.5,
+  warmLightIntensity: 2.5,
+  rimLightIntensity: 0.8,
+  particleCount: 280
+};
+const DEFAULT_LOADING_SCREEN_CONFIG = {
+  logoPrimaryText: "H",
+  logoSecondaryText: "SR",
+  tagline: "Preparing your experience...",
+  backgroundColor: "",
+  accentColor: "",
+  textColor: "",
+  backgroundImageUrl: ""
+};
+const HERO_SCENE_PRESET_DEFAULTS = {
+  default: {},
+  luxury: {
+    toneMappingExposure: 1.35,
+    cameraDistance: 11.5,
+    ambientLightIntensity: 0.45,
+    goldLightIntensity: 4.4,
+    warmLightIntensity: 2.1,
+    rimLightIntensity: 1
+  },
+  warm: {
+    toneMappingExposure: 1.28,
+    cameraDistance: 11.8,
+    ambientLightIntensity: 0.65,
+    goldLightIntensity: 3.7,
+    warmLightIntensity: 3.4,
+    rimLightIntensity: 0.65
+  },
+  minimal: {
+    toneMappingExposure: 1.05,
+    cameraDistance: 13.2,
+    ambientLightIntensity: 0.38,
+    goldLightIntensity: 2.6,
+    warmLightIntensity: 1.6,
+    rimLightIntensity: 0.55
+  },
+  family: {
+    toneMappingExposure: 1.22,
+    cameraDistance: 12.4,
+    ambientLightIntensity: 0.72,
+    goldLightIntensity: 3.1,
+    warmLightIntensity: 3.05,
+    rimLightIntensity: 0.72
+  }
+};
 
 
 function getHotelSlugFromQuery() {
   const params = new URLSearchParams(window.location.search);
   return params.get("hotel");
+}
+
+function normalizeOrderContextParam(value, maxLength = 80) {
+  const text = typeof value === "string"
+    ? value.replace(/[\u0000-\u001f\u007f]/g, " ").trim()
+    : "";
+  return text.slice(0, maxLength);
+}
+
+function getOrderContextFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const tableNumber = normalizeOrderContextParam(
+    params.get("table") || params.get("tableNumber"),
+    80
+  );
+
+  if (!tableNumber) {
+    return {
+      orderType: "standard",
+      tableNumber: "",
+      orderSource: "website"
+    };
+  }
+
+  return {
+    orderType: "dine-in",
+    tableNumber,
+    orderSource: normalizeOrderContextParam(params.get("source"), 40) || "qr"
+  };
 }
 
 function isLocalhost(hostname) {
@@ -35,6 +164,470 @@ function isLocalhost(hostname) {
     hostname === "127.0.0.1" ||
     hostname.endsWith(".localhost")
   );
+}
+
+function isPlainObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeThemeString(value, maxLength = 80) {
+  const candidate = typeof value === "string" ? value.trim() : "";
+  return candidate && candidate.length <= maxLength ? candidate : "";
+}
+
+function normalizeThemePreset(value, allowedValues) {
+  const candidate = normalizeThemeString(value, 50).toLowerCase();
+  return allowedValues.includes(candidate) ? candidate : "";
+}
+
+function normalizeThemeBoolean(value) {
+  return typeof value === "boolean" ? value : null;
+}
+
+function normalizeThemeSectionOrder(value) {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set();
+
+  return value.reduce((orderedSections, item) => {
+    const candidate = normalizeThemeString(item, 40).toLowerCase();
+
+    if (!SUPPORTED_THEME_SECTION_ORDER.includes(candidate) || seen.has(candidate)) {
+      return orderedSections;
+    }
+
+    seen.add(candidate);
+    orderedSections.push(candidate);
+    return orderedSections;
+  }, []);
+}
+
+function normalizeThemeGroup(rawGroup, allowedKeys) {
+  if (!isPlainObject(rawGroup)) return {};
+
+  return allowedKeys.reduce((nextGroup, key) => {
+    const value = normalizeThemeString(rawGroup[key]);
+    if (value) {
+      nextGroup[key] = value;
+    }
+    return nextGroup;
+  }, {});
+}
+
+function normalizeLoadingScreenConfig(rawLoadingScreen) {
+  const loadingScreen = normalizeHotelProfileJsonObject(rawLoadingScreen);
+
+  return {
+    logoPrimaryText:
+      normalizeHotelProfileStringField(loadingScreen.logoPrimaryText, 40) ||
+      DEFAULT_LOADING_SCREEN_CONFIG.logoPrimaryText,
+    logoSecondaryText:
+      normalizeHotelProfileStringField(loadingScreen.logoSecondaryText, 80) ||
+      DEFAULT_LOADING_SCREEN_CONFIG.logoSecondaryText,
+    tagline:
+      normalizeHotelProfileStringField(loadingScreen.tagline, 160) ||
+      DEFAULT_LOADING_SCREEN_CONFIG.tagline,
+    backgroundColor: normalizeHotelProfileStringField(
+      loadingScreen.backgroundColor,
+      80
+    ),
+    accentColor: normalizeHotelProfileStringField(loadingScreen.accentColor, 80),
+    textColor: normalizeHotelProfileStringField(loadingScreen.textColor, 80),
+    backgroundImageUrl: normalizeHotelProfileStringField(
+      loadingScreen.backgroundImageUrl,
+      2000
+    )
+  };
+}
+
+function normalizeTheme(rawTheme) {
+  if (!isPlainObject(rawTheme)) {
+    return {};
+  }
+
+  const normalizedTheme = {};
+  const colors = normalizeThemeGroup(rawTheme.colors, [
+    "primary",
+    "primaryLight",
+    "primaryDark",
+    "background",
+    "backgroundAlt",
+    "text",
+    "textMuted"
+  ]);
+  const radius = normalizeThemeGroup(rawTheme.radius, ["base", "small"]);
+  const typographyPreset = normalizeThemePreset(rawTheme.typography?.preset, [
+    "default",
+    "system"
+  ]);
+  const heroLayoutVariant = normalizeThemePreset(
+    rawTheme.hero?.layoutVariant,
+    SUPPORTED_THEME_HERO_LAYOUT_VARIANTS
+  );
+  const containerPreset = normalizeThemePreset(rawTheme.layout?.containerPreset, [
+    "compact",
+    "default",
+    "wide"
+  ]);
+  const buttonPreset = normalizeThemePreset(rawTheme.buttons?.preset, [
+    "default",
+    "solid",
+    "crisp"
+  ]);
+  const aboutVisibility = normalizeThemeBoolean(rawTheme.sections?.about);
+  const eventsVisibility = normalizeThemeBoolean(rawTheme.sections?.events);
+  const galleryVisibility = normalizeThemeBoolean(rawTheme.sections?.gallery);
+  const sectionOrder = normalizeThemeSectionOrder(rawTheme.sections?.order);
+  const reservationVisibility = normalizeThemeBoolean(rawTheme.sections?.reservation);
+  const testimonialsVisibility = normalizeThemeBoolean(rawTheme.sections?.testimonials);
+  const loadingScreen = normalizeLoadingScreenConfig(rawTheme.loadingScreen);
+
+  if (Object.keys(colors).length) {
+    normalizedTheme.colors = colors;
+  }
+
+  if (Object.keys(radius).length) {
+    normalizedTheme.radius = radius;
+  }
+
+  if (typographyPreset) {
+    normalizedTheme.typography = { preset: typographyPreset };
+  }
+
+  if (heroLayoutVariant) {
+    normalizedTheme.hero = { layoutVariant: heroLayoutVariant };
+  }
+
+  if (containerPreset) {
+    normalizedTheme.layout = { containerPreset };
+  }
+
+  if (buttonPreset) {
+    normalizedTheme.buttons = { preset: buttonPreset };
+  }
+
+  normalizedTheme.loadingScreen = loadingScreen;
+
+  if (
+    aboutVisibility !== null ||
+    eventsVisibility !== null ||
+    galleryVisibility !== null ||
+    sectionOrder.length ||
+    reservationVisibility !== null ||
+    testimonialsVisibility !== null
+  ) {
+    normalizedTheme.sections = {};
+
+    if (aboutVisibility !== null) {
+      normalizedTheme.sections.about = aboutVisibility;
+    }
+
+    if (eventsVisibility !== null) {
+      normalizedTheme.sections.events = eventsVisibility;
+    }
+
+    if (galleryVisibility !== null) {
+      normalizedTheme.sections.gallery = galleryVisibility;
+    }
+
+    if (sectionOrder.length) {
+      normalizedTheme.sections.order = sectionOrder;
+    }
+
+    if (reservationVisibility !== null) {
+      normalizedTheme.sections.reservation = reservationVisibility;
+    }
+
+    if (testimonialsVisibility !== null) {
+      normalizedTheme.sections.testimonials = testimonialsVisibility;
+    }
+  }
+
+  return normalizedTheme;
+}
+
+function normalizeGalleryLayoutVariant(value) {
+  const candidate = normalizeThemeString(value, 20).toLowerCase();
+  return SUPPORTED_GALLERY_LAYOUT_VARIANTS.includes(candidate)
+    ? candidate
+    : "standard";
+}
+
+function normalizeGalleryItem(rawItem) {
+  if (!isPlainObject(rawItem)) {
+    return null;
+  }
+
+  const imageUrl = normalizeThemeString(rawItem.imageUrl, 2000);
+
+  if (!imageUrl) {
+    return null;
+  }
+
+  return {
+    id: rawItem.id ?? "",
+    imageUrl,
+    storagePath: normalizeThemeString(rawItem.storagePath, 500),
+    alt: normalizeThemeString(rawItem.alt, 300),
+    layoutVariant: normalizeGalleryLayoutVariant(rawItem.layoutVariant),
+    sortOrder: Number.isFinite(Number(rawItem.sortOrder))
+      ? Number(rawItem.sortOrder)
+      : 0
+  };
+}
+
+function normalizeGallery(rawGallery) {
+  if (!Array.isArray(rawGallery)) {
+    return [];
+  }
+
+  return rawGallery
+    .map((item) => normalizeGalleryItem(item))
+    .filter(Boolean)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+function normalizeTestimonialItem(rawItem) {
+  if (!isPlainObject(rawItem)) {
+    return null;
+  }
+
+  const text = normalizeThemeString(rawItem.text, 4000);
+  const name = normalizeThemeString(rawItem.name, 300);
+
+  if (!text || !name) {
+    return null;
+  }
+
+  return {
+    id: rawItem.id ?? "",
+    hotelSlug: normalizeThemeString(rawItem.hotelSlug, 200),
+    text,
+    name,
+    role: normalizeThemeString(rawItem.role, 300),
+    stars: Math.max(1, Math.min(5, Math.round(Number(rawItem.stars || 5)))),
+    avatar: normalizeThemeString(rawItem.avatar, 2000)
+  };
+}
+
+function normalizeTestimonials(rawTestimonials) {
+  if (!Array.isArray(rawTestimonials)) {
+    return [];
+  }
+
+  return rawTestimonials.map((item) => normalizeTestimonialItem(item)).filter(Boolean);
+}
+
+function normalizePublicMenuCategoryKey(value) {
+  const candidate = normalizeThemeString(value, 80).toLowerCase();
+
+  if (!candidate) {
+    return "";
+  }
+
+  const compactCandidate = candidate.replace(/[^a-z]/g, "");
+
+  return MENU_CATEGORY_ALIASES[compactCandidate] || candidate;
+}
+
+function normalizePublicMenu(rawMenu) {
+  if (!isPlainObject(rawMenu)) {
+    return {};
+  }
+
+  return Object.entries(rawMenu).reduce((normalizedMenu, [rawCategory, rawItems]) => {
+    if (!Array.isArray(rawItems) || !rawItems.length) {
+      return normalizedMenu;
+    }
+
+    const categoryKey = normalizePublicMenuCategoryKey(rawCategory);
+    if (!categoryKey) {
+      return normalizedMenu;
+    }
+
+    if (!normalizedMenu[categoryKey]) {
+      normalizedMenu[categoryKey] = [];
+    }
+
+    normalizedMenu[categoryKey].push(...rawItems);
+    return normalizedMenu;
+  }, {});
+}
+
+function normalizeHotelProfileJsonObject(value) {
+  return isPlainObject(value) ? { ...value } : {};
+}
+
+function normalizeHotelProfileStringField(value, maxLength = 2000) {
+  return normalizeThemeString(value, maxLength);
+}
+
+function normalizeHotelProfileArrayField(value, nestedKey = "") {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (isPlainObject(value) && nestedKey && Array.isArray(value[nestedKey])) {
+    return value[nestedKey];
+  }
+
+  return [];
+}
+
+function normalizeHotelProfileStringArrayField(
+  value,
+  nestedKey = "",
+  maxLength = 2000
+) {
+  return normalizeHotelProfileArrayField(value, nestedKey)
+    .map((item) => normalizeHotelProfileStringField(item, maxLength))
+    .filter(Boolean);
+}
+
+function normalizeHotelProfileObjectArrayField(value, nestedKey = "") {
+  return normalizeHotelProfileArrayField(value, nestedKey)
+    .filter((item) => isPlainObject(item))
+    .map((item) => ({ ...item }));
+}
+
+function normalizeFiniteNumber(value, fallback, { min = -Infinity, max = Infinity } = {}) {
+  const candidate = Number(value);
+
+  if (!Number.isFinite(candidate)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(candidate, min), max);
+}
+
+function normalizeIntegerNumber(value, fallback, { min = -Infinity, max = Infinity } = {}) {
+  return Math.round(
+    normalizeFiniteNumber(value, fallback, {
+      min,
+      max
+    })
+  );
+}
+
+function normalizeHeroScenePreset(value) {
+  const candidate = normalizeThemeString(value, 50).toLowerCase();
+  return SUPPORTED_HERO_SCENE_PRESETS.includes(candidate)
+    ? candidate
+    : DEFAULT_HERO_SCENE_CONFIG.preset;
+}
+
+function getHeroScenePresetDefaults(preset) {
+  return {
+    ...DEFAULT_HERO_SCENE_CONFIG,
+    ...(HERO_SCENE_PRESET_DEFAULTS[preset] || {})
+  };
+}
+
+function normalizeHeroSceneConfig(rawScene) {
+  const scene = normalizeHotelProfileJsonObject(rawScene);
+  const preset = normalizeHeroScenePreset(scene.preset);
+  const presetDefaults = getHeroScenePresetDefaults(preset);
+
+  return {
+    enabled:
+      typeof scene.enabled === "boolean" ? scene.enabled : DEFAULT_HERO_SCENE_CONFIG.enabled,
+    preset,
+    toneMappingExposure: normalizeFiniteNumber(
+      scene.toneMappingExposure,
+      presetDefaults.toneMappingExposure,
+      { min: 0.2, max: 3 }
+    ),
+    cameraDistance: normalizeFiniteNumber(
+      scene.cameraDistance,
+      presetDefaults.cameraDistance,
+      { min: 6, max: 24 }
+    ),
+    ambientLightIntensity: normalizeFiniteNumber(
+      scene.ambientLightIntensity,
+      presetDefaults.ambientLightIntensity,
+      { min: 0, max: 4 }
+    ),
+    goldLightIntensity: normalizeFiniteNumber(
+      scene.goldLightIntensity,
+      presetDefaults.goldLightIntensity,
+      { min: 0, max: 8 }
+    ),
+    warmLightIntensity: normalizeFiniteNumber(
+      scene.warmLightIntensity,
+      presetDefaults.warmLightIntensity,
+      { min: 0, max: 8 }
+    ),
+    rimLightIntensity: normalizeFiniteNumber(
+      scene.rimLightIntensity,
+      presetDefaults.rimLightIntensity,
+      { min: 0, max: 4 }
+    ),
+    particleCount: normalizeIntegerNumber(
+      scene.particleCount,
+      presetDefaults.particleCount,
+      { min: 0, max: 600 }
+    )
+  };
+}
+
+function normalizeAboutContent(rawAbout) {
+  const about = normalizeHotelProfileJsonObject(rawAbout);
+
+  return {
+    ...about,
+    paragraphs: normalizeHotelProfileStringArrayField(about.paragraphs, "paragraphs", 2000),
+    primaryImageUrl: normalizeHotelProfileStringField(about.primaryImageUrl, 2000),
+    primaryImageAlt: normalizeHotelProfileStringField(about.primaryImageAlt, 300),
+    primaryImageStoragePath: normalizeHotelProfileStringField(
+      about.primaryImageStoragePath,
+      500
+    ),
+    secondaryImageUrl: normalizeHotelProfileStringField(about.secondaryImageUrl, 2000),
+    secondaryImageAlt: normalizeHotelProfileStringField(about.secondaryImageAlt, 300),
+    secondaryImageStoragePath: normalizeHotelProfileStringField(
+      about.secondaryImageStoragePath,
+      500
+    )
+  };
+}
+
+function normalizeHeroContent(rawHero) {
+  const hero = normalizeHotelProfileJsonObject(rawHero);
+  const legacyStatsGroup = normalizeHotelProfileJsonObject(hero.stats);
+
+  return {
+    ...hero,
+    titleLine1:
+      normalizeHotelProfileStringField(hero.titleLine1, 200) ||
+      normalizeHotelProfileStringField(legacyStatsGroup.titleLine1, 200),
+    titleLine2:
+      normalizeHotelProfileStringField(hero.titleLine2, 200) ||
+      normalizeHotelProfileStringField(legacyStatsGroup.titleLine2, 200),
+    titleLine3:
+      normalizeHotelProfileStringField(hero.titleLine3, 200) ||
+      normalizeHotelProfileStringField(legacyStatsGroup.titleLine3, 200),
+    stats: normalizeHotelProfileObjectArrayField(hero.stats, "stats"),
+    scene: normalizeHeroSceneConfig(hero.scene)
+  };
+}
+
+function normalizeEventsContent(rawEvents) {
+  const events = normalizeHotelProfileJsonObject(rawEvents);
+  const legacyCardsGroup = normalizeHotelProfileJsonObject(events.cards);
+
+  return {
+    ...events,
+    eyebrow:
+      normalizeHotelProfileStringField(events.eyebrow, 200) ||
+      normalizeHotelProfileStringField(legacyCardsGroup.eyebrow, 200),
+    title:
+      normalizeHotelProfileStringField(events.title, 200) ||
+      normalizeHotelProfileStringField(legacyCardsGroup.title, 200),
+    subtitle:
+      normalizeHotelProfileStringField(events.subtitle, 600) ||
+      normalizeHotelProfileStringField(legacyCardsGroup.subtitle, 600),
+    cards: normalizeHotelProfileObjectArrayField(events.cards, "cards")
+  };
 }
 
 async function fetchJson(url) {
@@ -70,6 +663,10 @@ async function resolveHotelSlug() {
 }
 
 function mapHotelProfileToFrontendShape(rawHotel) {
+  const about = normalizeAboutContent(rawHotel.about);
+  const hero = normalizeHeroContent(rawHotel.hero);
+  const events = normalizeEventsContent(rawHotel.events);
+
   return {
     slug: rawHotel.hotel_slug,
     hotelName: rawHotel.hotel_name,
@@ -79,10 +676,11 @@ function mapHotelProfileToFrontendShape(rawHotel) {
     gstPercent: Number(rawHotel.gst_percent || 5),
     contact: rawHotel.contact || {},
     branding: rawHotel.branding || {},
-    hero: rawHotel.hero || {},
-    about: rawHotel.about || {},
+    theme: normalizeTheme(rawHotel.theme),
+    hero,
+    about,
     features: rawHotel.features || [],
-    events: rawHotel.events || {},
+    events,
     reservation: rawHotel.reservation || {},
     contactSection: rawHotel.contact_section || {},
     location: rawHotel.location || {},
@@ -98,10 +696,41 @@ async function loadAppData() {
     fetchJson(`${PUBLIC_API_BASE}/hotel/${hotelSlug}`),
     fetchJson(`${PUBLIC_API_BASE}/menu/${hotelSlug}`)
   ]);
+  let gallery = [];
 
-  window.APP_STATE.hotel = mapHotelProfileToFrontendShape(hotelResult.hotel);
-  window.APP_STATE.menu = menuResult.menu || {};
+  try {
+    const galleryResult = await fetchJson(`${PUBLIC_API_BASE}/gallery/${hotelSlug}`);
+    gallery = normalizeGallery(galleryResult.gallery);
+  } catch (error) {
+    console.warn("Failed to load gallery data. Falling back to empty gallery.", error);
+  }
+
+  let testimonials = [];
+
+  try {
+    const testimonialsResult = await fetchJson(`${PUBLIC_API_BASE}/testimonials/${hotelSlug}`);
+    testimonials = normalizeTestimonials(testimonialsResult.testimonials);
+  } catch (error) {
+    console.warn(
+      "Failed to load testimonials data. Falling back to empty testimonials.",
+      error
+    );
+  }
+
+  const hotel = mapHotelProfileToFrontendShape(hotelResult.hotel);
+  const normalizedMenu = normalizePublicMenu(menuResult.menu);
+
+  window.APP_STATE.hotel = hotel;
+  window.APP_STATE.gallery = gallery;
+  window.APP_STATE.testimonials = testimonials;
+  window.APP_STATE.heroScene = hotel.hero?.scene || { ...DEFAULT_HERO_SCENE_CONFIG };
+  window.APP_STATE.menu = normalizedMenu;
+  window.APP_STATE.theme = hotel.theme || {};
+  window.APP_STATE.loadingScreen = hotel.theme?.loadingScreen || {
+    ...DEFAULT_LOADING_SCREEN_CONFIG
+  };
   window.APP_STATE.activeHotelSlug = hotelSlug;
+  window.APP_STATE.orderContext = getOrderContextFromQuery();
 
   return window.APP_STATE;
 }

@@ -37,7 +37,7 @@
   <div id="loader" class="loader" role="status" aria-label="Loading">
     <div class="loader-inner">
       <div class="loader-logo">
-        <span class="loader-a">H</span><span class="loader-urum">SR</span>
+        <span class="loader-a"></span><span class="loader-urum"></span>
       </div>
       <div class="loader-bar-wrap"><div class="loader-bar" id="loaderBar"></div></div>
       <p class="loader-tagline">Preparing your experience…</p>
@@ -99,7 +99,7 @@
   </section>
 
   <!-- ─── ABOUT SECTION ────────────────────────────────── -->
-  <section id="about" class="about section" aria-label="About HSR">
+  <section id="about" class="about section" aria-label="About Hotel">
     <div class="container">
       <div class="about-grid">
         <div class="about-images">
@@ -323,7 +323,7 @@
       <div class="reservation-wrapper">
         <div class="reservation-info">
        <p class="section-eyebrow reveal-text" id="reservationEyebrow"></p>
-<h2 class="section-title reveal-text" id="reservationTitle"></h2>
+<h2 class="section-title reveal-text" id="reservationTitle" style="animation-delay: 0.12s;color: aliceblue;"></h2>
 <p class="section-sub reveal-text" id="reservationSubtitle"></p>
           <div class="reservation-details">
             <div class="res-detail">
@@ -337,16 +337,16 @@
               <i class="fas fa-phone" aria-hidden="true"></i>
               <div>
                 <strong>Phone</strong>
-                <span>+91 96692 25579</span>
+                <span>+91 8319657045</span>
               </div>
             </div>
-            <div class="res-detail">
+            <!-- <div class="res-detail">
               <i class="fas fa-envelope" aria-hidden="true"></i>
               <div>
                 <strong>Email</strong>
                 <span><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2b594e584e595d4e6b43445f4e47584a42594a41054245">[email&#160;protected]</a></span>
               </div>
-            </div>
+            </div> -->
           </div>
         </div>
         <div class="reservation-form-wrap glass-card">
@@ -612,11 +612,73 @@
           <button class="testi-btn" id="testNext" aria-label="Next testimonial"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
         </div>
       </div>
+      <div class="testimonials-actions">
+        <button type="button" id="openTestimonialReviewBtn" class="btn btn-gold">
+          Review this hotel
+        </button>
+      </div>
+      <div id="testimonialReviewWrap" class="testimonial-review-wrap glass-card" hidden>
+        <div class="testimonial-review-head">
+          <h3>Share Your Experience</h3>
+          <p>Your review will stay linked to this hotel and will appear after admin approval.</p>
+        </div>
+        <form id="testimonialReviewForm" class="testimonial-review-form" aria-label="Hotel review form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="testimonialReviewName">Your Name *</label>
+              <input
+                type="text"
+                id="testimonialReviewName"
+                name="name"
+                placeholder="Enter your name"
+                required />
+            </div>
+            <div class="form-group">
+              <label for="testimonialReviewRole">Visit Type</label>
+              <input
+                type="text"
+                id="testimonialReviewRole"
+                name="role"
+                placeholder="Family Dinner, Weekend Stay, etc." />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="testimonialReviewStars">Stars *</label>
+              <select id="testimonialReviewStars" name="stars" required>
+                <option value="5">5 Stars</option>
+                <option value="4">4 Stars</option>
+                <option value="3">3 Stars</option>
+                <option value="2">2 Stars</option>
+                <option value="1">1 Star</option>
+              </select>
+            </div>
+            <div class="form-group testimonial-review-note">
+              <p>Only approved reviews are shown publicly.</p>
+            </div>
+          </div>
+          <div class="form-group full">
+            <label for="testimonialReviewText">Your Review *</label>
+            <textarea
+              id="testimonialReviewText"
+              name="text"
+              rows="4"
+              placeholder="Tell us about your experience"
+              required></textarea>
+          </div>
+          <div class="testimonial-review-actions-row">
+            <button type="submit" class="btn btn-gold">Submit Review</button>
+            <button type="button" id="cancelTestimonialReviewBtn" class="btn btn-outline">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </section>
 
   <!-- ─── CONTACT SECTION ──────────────────────────────── -->
-<section id="contact" class="contact section" aria-label="Contact">
+  <section id="contact" class="contact section" aria-label="Contact">
   <div class="container">
     <div class="section-header">
       <p class="section-eyebrow reveal-text" id="contactEyebrow"></p>
@@ -715,7 +777,7 @@
 
     </div>
   </div>
-</section>
+   </section>
 
   <!-- Whatsapp Inquairy -->
 <!-- ─── WHATSAPP FLOAT BUTTON ───────────────────────── -->
@@ -782,8 +844,8 @@
         <div class="footer-social">
           <a href="#"><i class="fab fa-instagram"></i></a>
           <a href="#"><i class="fab fa-facebook-f"></i></a>
-          <a href="#"><i class="fab fa-x-twitter"></i></a>
-          <a href="#"><i class="fab fa-tiktok"></i></a>
+          <!-- <a href="#"><i class="fab fa-x-twitter"></i></a>
+          <a href="#"><i class="fab fa-tiktok"></i></a> -->
         </div>
       </div>
 
@@ -836,7 +898,7 @@
 
   <div class="footer-bottom">
     <div class="container">
-      <p>© <span id="footerYear"></span> Hotel Sai Raj. All rights reserved.</p>
+      <p>© <span id="footerYear"></span> Hotel. All rights reserved.</p>
     </div>
   </div>
 </footer>

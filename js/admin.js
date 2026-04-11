@@ -13,8 +13,11 @@ const TAB_LABELS = {
   orders: "orders",
   reservations: "reservations",
   inquiries: "inquiries",
+  "notification-events": "notification events",
   hotels: "hotels",
-  "menu-items": "menu items"
+  "gallery-items": "gallery items",
+  "menu-items": "menu items",
+  testimonials: "testimonials"
 };
 
 // ====================== UPLOAD BUTTON ======================
@@ -49,8 +52,99 @@ const state = {
   orders: [],
   reservations: [],
   inquiries: [],
-  menuItems: []
+  notificationEvents: [],
+  notificationEventMaxRetries: 3,
+  galleryItems: [],
+  menuItems: [],
+  testimonials: [],
+  menuItemSearchQuery: "",
+  profileHeroBase: {},
+  profileHeroHotelSlug: "",
+  profileThemeBase: {},
+  profileThemeHotelSlug: "",
+  profileThemeSectionOrderDirty: false
 };
+
+const PROFILE_THEME_DEFAULTS = {
+  colors: {
+    primary: "#c9a84c",
+    primaryLight: "#e8d08a",
+    primaryDark: "#a07830",
+    background: "#fbf8f3",
+    backgroundAlt: "#f3ede3",
+    text: "#333333",
+    textMuted: "#6b6b6b"
+  },
+  radius: {
+    base: "16px",
+    small: "8px"
+  }
+};
+
+const PROFILE_THEME_FONT_PRESETS = {
+  default: {
+    display: "\"Cormorant Garamond\", Georgia, serif",
+    body: "\"Jost\", sans-serif"
+  },
+  system: {
+    display: "Georgia, serif",
+    body: "system-ui, sans-serif"
+  }
+};
+
+const PROFILE_THEME_CONTAINER_PRESETS = {
+  compact: "1120px",
+  default: "1280px",
+  wide: "1440px"
+};
+
+const PROFILE_THEME_BUTTON_PRESETS = {
+  default: "default",
+  solid: "solid",
+  crisp: "crisp"
+};
+
+const PROFILE_THEME_HERO_LAYOUT_PRESETS = {
+  default: "default",
+  split: "split",
+  stacked: "stacked"
+};
+
+const PROFILE_THEME_HERO_LAYOUT_LABELS = {
+  default: "Default",
+  split: "Split",
+  stacked: "Stacked"
+};
+
+const PROFILE_HERO_SCENE_PRESETS = {
+  default: "default",
+  luxury: "luxury",
+  warm: "warm",
+  minimal: "minimal",
+  family: "family"
+};
+
+const PROFILE_THEME_SECTION_ORDER = [
+  "about",
+  "menu",
+  "reservation",
+  "events",
+  "gallery",
+  "testimonials",
+  "contact"
+];
+
+const PROFILE_THEME_SECTION_LABELS = {
+  about: "About",
+  menu: "Menu",
+  reservation: "Reservation",
+  events: "Events",
+  gallery: "Gallery",
+  testimonials: "Testimonials",
+  contact: "Contact"
+};
+
+const THEME_FOUNDATION_VERSION = "24.6-foundation";
 
 
 
@@ -110,6 +204,214 @@ function getLoadingLabel(activeTab = state.activeTab) {
   return TAB_LABELS[activeTab] || "dashboard";
 }
 
+function toTitleLabel(value = "") {
+  return String(value || "")
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function renderAdminScopeSummary() {
+  const tabValue = document.getElementById("adminScopeTabValue");
+  const hotelValue = document.getElementById("adminScopeHotelValue");
+  const helpText = document.getElementById("adminScopeHelp");
+
+  if (!tabValue || !hotelValue || !helpText) return;
+
+  const selectedHotel = getSelectedHotel();
+  const selectedHotelSlug = getSelectedHotelSlug();
+  const activeTabLabel = toTitleLabel(getLoadingLabel());
+  const hotelScopeLabel = selectedHotel?.name
+    ? `${selectedHotel.name}${selectedHotel.slug ? ` (${selectedHotel.slug})` : ""}`
+    : selectedHotelSlug
+      ? selectedHotelSlug
+      : "All Hotels";
+
+  tabValue.textContent = activeTabLabel;
+  hotelValue.textContent = hotelScopeLabel;
+  helpText.textContent = selectedHotel || selectedHotelSlug
+    ? `${activeTabLabel} is currently filtered to one hotel. Supported editor forms will reuse this scope automatically.`
+    : `${activeTabLabel} is currently showing all hotels. Choose a hotel filter when you want narrower records and editor defaults.`;
+}
+
+function normalizeQrLinkValue(value = "", maxLength = 100) {
+  return String(value || "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function syncQrTableLinkHotelSlug({ force = false } = {}) {
+  const input = document.getElementById("qrLinkHotelSlugInput");
+  if (!input) return;
+
+  const selectedHotelSlug = getSelectedHotelSlug();
+  if (selectedHotelSlug && (force || !input.value.trim())) {
+    input.value = selectedHotelSlug;
+  }
+}
+
+function buildQrTableOrderUrl({ hotelSlug, tableNumber, targetPage }) {
+  const safePage = targetPage === "index.html" ? "index.html" : "menu.html";
+  const url = new URL(safePage, window.location.href);
+
+  url.search = "";
+  url.hash = safePage === "index.html" ? "menu" : "";
+  url.searchParams.set("hotel", hotelSlug);
+  url.searchParams.set("table", tableNumber);
+  url.searchParams.set("source", "qr");
+
+  return url.href;
+}
+
+function updateQrTableLinkOutput(link = "", message = "", summary = "") {
+  const output = document.getElementById("qrTableLinkOutput");
+  const preview = document.getElementById("qrTableLinkPreview");
+  const help = document.getElementById("qrTableLinkHelp");
+  const summaryEl = document.getElementById("qrTableLinkSummary");
+
+  if (output) output.value = link;
+  if (preview) {
+    preview.href = link || "#";
+    preview.setAttribute("aria-disabled", link ? "false" : "true");
+  }
+  if (help) {
+    help.textContent = message || (link ? "Use this URL in your QR code tool." : "No QR link generated yet.");
+  }
+  if (summaryEl) {
+    summaryEl.textContent = summary || "No QR table selected yet.";
+  }
+}
+
+function generateQrTableLink() {
+  const hotelSlug = normalizeQrLinkValue(
+    document.getElementById("qrLinkHotelSlugInput")?.value,
+    120
+  );
+  const tableNumber = normalizeQrLinkValue(
+    document.getElementById("qrLinkTableNumberInput")?.value,
+    80
+  );
+  const targetPage =
+    document.getElementById("qrLinkTargetPageInput")?.value || "menu.html";
+
+  if (!hotelSlug || !tableNumber) {
+    updateQrTableLinkOutput("", "Enter hotel slug and table number first.");
+    return "";
+  }
+
+  const link = buildQrTableOrderUrl({ hotelSlug, tableNumber, targetPage });
+  updateQrTableLinkOutput(
+    link,
+    "",
+    `QR target: ${hotelSlug} / ${tableNumber} / ${targetPage === "index.html" ? "Homepage menu section" : "Full menu page"}`
+  );
+  return link;
+}
+
+async function copyQrTableLink() {
+  const output = document.getElementById("qrTableLinkOutput");
+  const link = output?.value.trim() || generateQrTableLink();
+
+  if (!link) return;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(link);
+    } else if (output) {
+      output.select();
+      document.execCommand("copy");
+    }
+    updateQrTableLinkOutput(link, "Copied. Use this URL in your QR code tool.");
+  } catch (error) {
+    console.error("QR table link copy failed:", error);
+    updateQrTableLinkOutput(link, "Copy failed. Select the generated link manually.");
+  }
+}
+
+function buildAdminStateBadge(label = "", tone = "neutral") {
+  return `<span class="admin-state-badge is-${tone}">${escapeHTML(label)}</span>`;
+}
+
+function buildBooleanStateBadge(
+  value,
+  {
+    onLabel = "Enabled",
+    offLabel = "Disabled",
+    onTone = "success",
+    offTone = "warning"
+  } = {}
+) {
+  return buildAdminStateBadge(
+    value ? onLabel : offLabel,
+    value ? onTone : offTone
+  );
+}
+
+function getAdminListScopeLabel() {
+  const selectedHotel = getSelectedHotel();
+  const selectedHotelSlug = getSelectedHotelSlug();
+
+  if (selectedHotel?.name) {
+    return `${selectedHotel.name}${selectedHotel.slug ? ` (${selectedHotel.slug})` : ""}`;
+  }
+
+  if (selectedHotelSlug) {
+    return selectedHotelSlug;
+  }
+
+  return "All Hotels";
+}
+
+function buildAdminListSummaryCard({
+  title = "List Overview",
+  count = 0,
+  description = ""
+} = {}) {
+  return `
+    <div class="admin-card admin-list-summary">
+      <h3>${escapeHTML(title)}</h3>
+      ${
+        description
+          ? `<p class="admin-toolbar-help">${escapeHTML(description)}</p>`
+          : ""
+      }
+      <div class="status-row">
+        <span class="status-badge">Records: ${escapeHTML(count)}</span>
+        <span class="status-badge">Scope: ${escapeHTML(getAdminListScopeLabel())}</span>
+      </div>
+    </div>
+    `;
+}
+
+function normalizeSearchText(value = "") {
+  return String(value || "").trim().toLowerCase();
+}
+
+function filterMenuItemsBySearchQuery(menuItems = [], searchQuery = "") {
+  const normalizedQuery = normalizeSearchText(searchQuery);
+
+  if (!normalizedQuery) {
+    return menuItems;
+  }
+
+  return menuItems.filter((item) => {
+    const searchableFields = [
+      item?.name,
+      item?.category,
+      item?.item_id,
+      item?.description,
+      item?.badge,
+      item?.tag,
+      item?.alt,
+      item?.hotel_slug
+    ];
+
+    return searchableFields.some((fieldValue) =>
+      normalizeSearchText(fieldValue).includes(normalizedQuery)
+    );
+  });
+}
+
 async function fetchJson(url, options = {}) {
   const headers = {
     ...(options.headers || {})
@@ -164,6 +466,47 @@ function syncMenuFormHotelSlug({ force = false } = {}) {
   }
 }
 
+function syncGalleryFormHotelSlug({ force = false } = {}) {
+  const input = document.getElementById("galleryHotelSlugInput");
+  const idField = document.getElementById("galleryItemDbId");
+  if (!input) return;
+
+  const isEditingExistingItem = !!idField?.value.trim();
+  if (isEditingExistingItem) return;
+
+  const hotelSlug = getSelectedHotelSlug();
+
+  if (force || !input.value.trim()) {
+    input.value = hotelSlug || "";
+  }
+}
+
+function syncTestimonialFormHotelSlug({ force = false } = {}) {
+  const input = document.getElementById("testimonialHotelSlugInput");
+  const idField = document.getElementById("testimonialDbId");
+  if (!input) return;
+
+  const isEditingExistingItem = !!idField?.value.trim();
+  if (isEditingExistingItem) return;
+
+  const hotelSlug = getSelectedHotelSlug();
+
+  if (force || !input.value.trim()) {
+    input.value = hotelSlug || "";
+  }
+}
+
+function syncNotificationSettingsHotelSlug({ force = false } = {}) {
+  const input = document.getElementById("notificationSettingsHotelSlugInput");
+  if (!input) return;
+
+  const hotelSlug = getSelectedHotelSlug();
+
+  if (force || !input.value.trim()) {
+    input.value = hotelSlug || "";
+  }
+}
+
 function resetHotelForm() {
   const form = document.getElementById("hotelForm");
   if (!form) return;
@@ -190,6 +533,66 @@ function resetMenuItemForm() {
   syncMenuFormHotelSlug({ force: true });
 }
 
+function resetGalleryItemForm() {
+  const form = document.getElementById("galleryItemForm");
+  if (!form) return;
+
+  form.reset();
+  const idField = document.getElementById("galleryItemDbId");
+  const layoutField = document.getElementById("galleryLayoutVariantInput");
+  const activeField = document.getElementById("galleryIsActiveInput");
+
+  if (idField) idField.value = "";
+  if (layoutField) layoutField.value = "standard";
+  if (activeField) activeField.checked = true;
+
+  syncGalleryFormHotelSlug({ force: true });
+}
+
+function resetTestimonialForm() {
+  const form = document.getElementById("testimonialForm");
+  if (!form) return;
+
+  form.reset();
+  const idField = document.getElementById("testimonialDbId");
+  const starsField = document.getElementById("testimonialStarsInput");
+  const activeField = document.getElementById("testimonialIsActiveInput");
+  const approvedField = document.getElementById("testimonialIsApprovedInput");
+
+  if (idField) idField.value = "";
+  if (starsField) starsField.value = "5";
+  if (activeField) activeField.checked = true;
+  if (approvedField) approvedField.checked = true;
+
+  syncTestimonialFormHotelSlug({ force: true });
+}
+
+function fillNotificationSettingsForm(settings = {}) {
+  document.getElementById("notificationSettingsHotelSlugInput").value =
+    settings.hotelSlug || "";
+  document.getElementById("notificationOwnerEmailInput").value =
+    settings.ownerEmail || "";
+  document.getElementById("notificationEmailEnabledInput").checked =
+    !!settings.emailEnabled;
+  document.getElementById("notificationNotifyOrderInput").checked =
+    settings.notifyOnNewOrder !== false;
+  document.getElementById("notificationNotifyReservationInput").checked =
+    settings.notifyOnNewReservation !== false;
+  document.getElementById("notificationNotifyInquiryInput").checked =
+    settings.notifyOnNewInquiry !== false;
+}
+
+function resetNotificationSettingsForm() {
+  fillNotificationSettingsForm({
+    hotelSlug: "",
+    ownerEmail: "",
+    emailEnabled: false,
+    notifyOnNewOrder: true,
+    notifyOnNewReservation: true,
+    notifyOnNewInquiry: true
+  });
+}
+
 function setSectionVisibility(id, shouldShow) {
   const el = document.getElementById(id);
   if (!el) return false;
@@ -212,10 +615,12 @@ async function loadHotels() {
   const result = await fetchJson(`${API_BASE}/hotels`);
   state.hotels = result.hotels || [];
   renderHotelFilter();
+  renderAdminScopeSummary();
 }
 
 async function loadTabData() {
   const content = $("#adminContent");
+  renderAdminScopeSummary();
   if (content) {
     content.innerHTML = `<p class="loading-state">Loading ${escapeHTML(getLoadingLabel())}...</p>`;
   }
@@ -241,6 +646,25 @@ async function loadTabData() {
     return;
   }
 
+  if (state.activeTab === "notification-events") {
+    const hotelSlug = getSelectedHotelSlug();
+    const result = await fetchJson(
+      hotelSlug
+        ? `${API_BASE}/notification-events?hotelSlug=${encodeURIComponent(hotelSlug)}`
+        : `${API_BASE}/notification-events`
+    );
+
+    state.notificationEvents = result.notificationEvents || [];
+    const maxRetries = Number.parseInt(
+      String(result.notificationEventMaxRetries ?? ""),
+      10
+    );
+    state.notificationEventMaxRetries =
+      Number.isFinite(maxRetries) && maxRetries > 0 ? maxRetries : 3;
+    renderNotificationEvents();
+    return;
+  }
+
   if (state.activeTab === "hotels") {
     renderHotels();
     return;
@@ -259,6 +683,32 @@ async function loadTabData() {
     return;
   }
 
+  if (state.activeTab === "gallery-items") {
+    const hotelSlug = getSelectedHotelSlug();
+    const result = await fetchJson(
+      hotelSlug
+        ? `${API_BASE}/gallery-items?hotelSlug=${encodeURIComponent(hotelSlug)}`
+        : `${API_BASE}/gallery-items`
+    );
+
+    state.galleryItems = result.galleryItems || [];
+    renderGalleryItems();
+    return;
+  }
+
+  if (state.activeTab === "testimonials") {
+    const hotelSlug = getSelectedHotelSlug();
+    const result = await fetchJson(
+      hotelSlug
+        ? `${API_BASE}/testimonials?hotelSlug=${encodeURIComponent(hotelSlug)}`
+        : `${API_BASE}/testimonials`
+    );
+
+    state.testimonials = result.testimonials || [];
+    renderTestimonialsAdminList();
+    return;
+  }
+
   if (content) {
     content.innerHTML = `<p class="empty-state">Select a valid dashboard section.</p>`;
   }
@@ -267,15 +717,57 @@ async function loadTabData() {
 function renderMenuItems() {
   const content = $("#adminContent");
   if (!content) return;
+  const searchQuery = String(state.menuItemSearchQuery || "");
+  const filteredMenuItems = filterMenuItemsBySearchQuery(
+    state.menuItems,
+    searchQuery
+  );
+  const menuCountLabel = searchQuery.trim()
+    ? `${filteredMenuItems.length} of ${state.menuItems.length}`
+    : state.menuItems.length;
 
   if (!state.menuItems.length) {
-    content.innerHTML = `<p class="empty-state">No menu items found.</p>`;
+    content.innerHTML = `
+      ${buildAdminListSummaryCard({
+        title: "Menu Items",
+        count: 0,
+        description: "Browse menu records for the current hotel scope."
+      })}
+      <p class="empty-state">No menu items found.</p>
+    `;
     return;
   }
 
   content.innerHTML = `
+    ${buildAdminListSummaryCard({
+      title: "Menu Items",
+      count: menuCountLabel,
+      description: "Browse menu records for the current hotel scope."
+    })}
+    <div class="admin-card admin-list-summary">
+      <div class="admin-list-toolbar">
+        <input
+          class="admin-list-search"
+          type="search"
+          data-menu-item-search
+          value="${escapeHTML(searchQuery)}"
+          placeholder="Search by name, category, item ID, description, badge, tag, or hotel slug" />
+        <p class="admin-list-helper-text">
+          ${
+            searchQuery.trim()
+              ? escapeHTML(
+                  `Showing ${filteredMenuItems.length} matching menu items in the current scope.`
+                )
+              : "Search filters only the menu items already loaded for the current hotel scope."
+          }
+        </p>
+      </div>
+    </div>
+    ${
+      filteredMenuItems.length
+        ? `
     <div class="admin-grid">
-      ${state.menuItems
+      ${filteredMenuItems
         .map(
           (item) => `
             <article class="admin-card">
@@ -287,28 +779,362 @@ function renderMenuItems() {
               <div class="admin-row"><strong>Price:</strong> ₹${escapeHTML(item.price ?? "")}</div>
               <div class="admin-row"><strong>Badge:</strong> ${escapeHTML(item.badge || "")}</div>
               <div class="admin-row"><strong>Tag:</strong> ${escapeHTML(item.tag || "")}</div>
-              <div class="admin-row"><strong>Available:</strong> ${escapeHTML(String(item.is_available))}</div>
-              <div class="admin-row"><strong>Archived:</strong> ${escapeHTML(String(item.is_archived))}</div>
+              <div class="admin-row admin-state-line">
+                <strong>State:</strong>
+                <div class="admin-state-list">
+                  ${buildBooleanStateBadge(item.is_available, {
+                    onLabel: "Available",
+                    offLabel: "Unavailable",
+                    onTone: "success",
+                    offTone: "warning"
+                  })}
+                  ${buildBooleanStateBadge(item.is_archived, {
+                    onLabel: "Archived",
+                    offLabel: "Live",
+                    onTone: "danger",
+                    offTone: "neutral"
+                  })}
+                </div>
+              </div>
               <div class="admin-row"><strong>Sort Order:</strong> ${escapeHTML(item.sort_order ?? "")}</div>
 
-              <button class="status-btn" data-edit-menu-item data-id="${escapeHTML(item.id)}">
-                Edit Menu Item
-              </button>
+              <div class="status-row admin-card-actions">
+                <button class="status-btn" data-edit-menu-item data-id="${escapeHTML(item.id)}">
+                  Edit Menu Item
+                </button>
 
-              <button 
-                class="status-btn" 
-                data-toggle-menu-archive 
-                data-id="${escapeHTML(item.id)}" 
-                data-archived="${escapeHTML(String(item.is_archived))}">
-                ${item.is_archived ? "Restore Menu Item" : "Archive Menu Item"}
-              </button>
+                <button 
+                  class="status-btn" 
+                  data-toggle-menu-archive 
+                  data-id="${escapeHTML(item.id)}" 
+                  data-archived="${escapeHTML(String(item.is_archived))}">
+                  ${item.is_archived ? "Restore Menu Item" : "Archive Menu Item"}
+                </button>
 
-              <button 
-                class="status-btn" 
-                data-delete-menu-item 
-                data-id="${escapeHTML(item.id)}">
-                Delete Menu Item
+                <button 
+                  class="status-btn" 
+                  data-delete-menu-item 
+                  data-id="${escapeHTML(item.id)}">
+                  Delete Menu Item
+                </button>
+              </div>
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+    `
+        : `<p class="empty-state">No menu items match the current search.</p>`
+    }
+  `;
+}
+
+function renderGalleryItems() {
+  const content = $("#adminContent");
+  if (!content) return;
+
+  if (!state.galleryItems.length) {
+    content.innerHTML = `
+      ${buildAdminListSummaryCard({
+        title: "Gallery Items",
+        count: 0,
+        description: "Browse gallery records for the current hotel scope."
+      })}
+      <p class="empty-state">No gallery items found.</p>
+    `;
+    return;
+  }
+
+  content.innerHTML = `
+    ${buildAdminListSummaryCard({
+      title: "Gallery Items",
+      count: state.galleryItems.length,
+      description: "Browse gallery records for the current hotel scope."
+    })}
+    <div class="admin-grid">
+      ${state.galleryItems
+        .map(
+          (item) => `
+            <article class="admin-card">
+              <h3>${escapeHTML(item.alt || `Gallery Item #${item.id || ""}`)}</h3>
+              <div class="admin-meta">${escapeHTML(item.hotel_slug || "")} • ${escapeHTML(item.layout_variant || "standard")}</div>
+
+              <div class="admin-row"><strong>DB ID:</strong> ${escapeHTML(item.id ?? "")}</div>
+              <div class="admin-row"><strong>Image URL:</strong> ${escapeHTML(item.image_url || "")}</div>
+              <div class="admin-row"><strong>Storage Path:</strong> ${escapeHTML(item.storage_path || "")}</div>
+              <div class="admin-row admin-state-line">
+                <strong>State:</strong>
+                <div class="admin-state-list">
+                  ${buildBooleanStateBadge(item.is_active, {
+                    onLabel: "Active",
+                    offLabel: "Inactive",
+                    onTone: "success",
+                    offTone: "warning"
+                  })}
+                  ${buildBooleanStateBadge(item.is_archived, {
+                    onLabel: "Archived",
+                    offLabel: "Live",
+                    onTone: "danger",
+                    offTone: "neutral"
+                  })}
+                </div>
+              </div>
+              <div class="admin-row"><strong>Sort Order:</strong> ${escapeHTML(item.sort_order ?? "")}</div>
+
+              <div class="status-row admin-card-actions">
+                <button class="status-btn" data-edit-gallery-item data-id="${escapeHTML(item.id)}">
+                  Edit Gallery Item
+                </button>
+
+                ${
+                  item.is_archived
+                    ? `
+                <button
+                  class="status-btn"
+                  data-toggle-gallery-archive
+                  data-id="${escapeHTML(item.id)}"
+                  data-archived="${escapeHTML(String(item.is_archived))}">
+                  Restore Gallery Item
+                </button>
+
+                <button
+                  class="status-btn"
+                  data-delete-gallery-item
+                  data-id="${escapeHTML(item.id)}">
+                  Delete Gallery Item
+                </button>
+                `
+                    : `
+                <button
+                  class="status-btn"
+                  data-toggle-gallery-active
+                  data-id="${escapeHTML(item.id)}"
+                  data-active="${escapeHTML(String(item.is_active))}">
+                  ${item.is_active ? "Deactivate Gallery Item" : "Activate Gallery Item"}
+                </button>
+
+                <button
+                  class="status-btn"
+                  data-toggle-gallery-archive
+                  data-id="${escapeHTML(item.id)}"
+                  data-archived="${escapeHTML(String(item.is_archived))}">
+                  Archive Gallery Item
+                </button>
+                `
+                }
+              </div>
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderTestimonialsAdminList() {
+  const content = $("#adminContent");
+  if (!content) return;
+
+  if (!state.testimonials.length) {
+    content.innerHTML = `
+      ${buildAdminListSummaryCard({
+        title: "Testimonials",
+        count: 0,
+        description: "Browse hotel-specific testimonial records for the current scope."
+      })}
+      <p class="empty-state">No testimonials found.</p>
+    `;
+    return;
+  }
+
+  content.innerHTML = `
+    ${buildAdminListSummaryCard({
+      title: "Testimonials",
+      count: state.testimonials.length,
+      description: "Browse hotel-specific testimonial records for the current scope."
+    })}
+    <div class="admin-grid">
+      ${state.testimonials
+        .map(
+          (item) => `
+            <article class="admin-card">
+              <h3>${escapeHTML(item.guest_name || item.name || `Testimonial #${item.id || ""}`)}</h3>
+              <div class="admin-meta">${escapeHTML(item.hotel_slug || item.hotelSlug || "")} • ${escapeHTML(item.guest_role || item.role || "Guest")}</div>
+
+              <div class="admin-row"><strong>DB ID:</strong> ${escapeHTML(item.id ?? "")}</div>
+              <div class="admin-row"><strong>Review:</strong> ${escapeHTML(item.review_text || item.text || "")}</div>
+              <div class="admin-row"><strong>Stars:</strong> ${escapeHTML(item.star_rating ?? item.stars ?? "")}</div>
+              <div class="admin-row"><strong>Avatar URL:</strong> ${escapeHTML(item.avatar_url || item.avatar || "")}</div>
+              <div class="admin-row admin-state-line">
+                <strong>State:</strong>
+                <div class="admin-state-list">
+                  ${buildBooleanStateBadge(item.is_active, {
+                    onLabel: "Active",
+                    offLabel: "Inactive",
+                    onTone: "success",
+                    offTone: "warning"
+                  })}
+                  ${buildBooleanStateBadge(item.is_approved, {
+                    onLabel: "Approved",
+                    offLabel: "Pending",
+                    onTone: "success",
+                    offTone: "warning"
+                  })}
+                  ${buildBooleanStateBadge(item.is_archived, {
+                    onLabel: "Archived",
+                    offLabel: "Live",
+                    onTone: "danger",
+                    offTone: "neutral"
+                  })}
+                </div>
+              </div>
+              <div class="admin-row"><strong>Sort Order:</strong> ${escapeHTML(item.sort_order ?? item.sortOrder ?? "")}</div>
+              <div class="admin-row"><strong>Created At:</strong> ${escapeHTML(item.created_at || "")}</div>
+
+              <div class="status-row admin-card-actions">
+                <button class="status-btn" data-edit-testimonial data-id="${escapeHTML(item.id)}">
+                  Edit Testimonial
+                </button>
+                <button
+                  class="status-btn"
+                  data-toggle-testimonial-approval
+                  data-id="${escapeHTML(item.id)}"
+                  data-approved="${escapeHTML(String(item.is_approved !== false))}">
+                  ${item.is_approved !== false ? "Mark Pending" : "Approve Testimonial"}
+                </button>
+                <button
+                  class="status-btn"
+                  data-toggle-testimonial-archive
+                  data-id="${escapeHTML(item.id)}"
+                  data-archived="${escapeHTML(String(item.is_archived === true))}">
+                  ${item.is_archived === true ? "Restore Testimonial" : "Archive Testimonial"}
+                </button>
+                <button
+                  class="status-btn"
+                  data-delete-testimonial
+                  data-id="${escapeHTML(item.id)}">
+                  Delete Testimonial
+                </button>
+              </div>
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function normalizeNotificationEventStatus(value = "") {
+  const status = String(value || "").trim().toLowerCase();
+  const supportedStatuses = ["pending", "sent", "failed", "skipped"];
+
+  return supportedStatuses.includes(status) ? status : "unknown";
+}
+
+function buildNotificationStatusCounts(notificationEvents = []) {
+  const counts = {
+    total: notificationEvents.length,
+    pending: 0,
+    sent: 0,
+    failed: 0,
+    skipped: 0,
+    unknown: 0
+  };
+
+  for (const event of notificationEvents) {
+    const status = normalizeNotificationEventStatus(event?.status);
+    counts[status] += 1;
+  }
+
+  return counts;
+}
+
+function getNotificationEventRetryCount(value) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function renderNotificationEvents() {
+  const content = $("#adminContent");
+  if (!content) return;
+
+  if (!state.notificationEvents.length) {
+    content.innerHTML = `<p class="empty-state">No notification events found.</p>`;
+    return;
+  }
+
+  const statusCounts = buildNotificationStatusCounts(state.notificationEvents);
+
+  content.innerHTML = `
+    <div class="admin-card">
+      <h3>Delivery Status Overview</h3>
+      <div class="status-row">
+        <span class="status-badge">Total: ${escapeHTML(statusCounts.total)}</span>
+        <span class="status-badge">Pending: ${escapeHTML(statusCounts.pending)}</span>
+        <span class="status-badge">Sent: ${escapeHTML(statusCounts.sent)}</span>
+        <span class="status-badge">Failed: ${escapeHTML(statusCounts.failed)}</span>
+        <span class="status-badge">Skipped: ${escapeHTML(statusCounts.skipped)}</span>
+        <span class="status-badge">Unknown: ${escapeHTML(statusCounts.unknown)}</span>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+      ${state.notificationEvents
+        .map(
+          (event) => `
+            <article class="admin-card">
+              <h3>${escapeHTML(event.event_type || "notification_event")}</h3>
+              <div class="admin-meta">${escapeHTML(event.hotel_slug || "shared")} • ${escapeHTML(event.source_type || "unknown")}</div>
+
+              <div class="admin-row"><strong>DB ID:</strong> ${escapeHTML(event.id ?? "")}</div>
+              <div class="admin-row"><strong>Source ID:</strong> ${escapeHTML(event.source_id || "")}</div>
+              <div class="admin-row"><strong>Channel:</strong> ${escapeHTML(event.delivery_channel || "")}</div>
+              <div class="admin-row"><strong>Status:</strong> ${escapeHTML(event.status || "")}</div>
+              <div class="admin-row"><strong>Retry Count:</strong> ${escapeHTML(getNotificationEventRetryCount(event.retry_count))}</div>
+              <div class="admin-row"><strong>Last Retry At:</strong> ${escapeHTML(event.last_retry_at || "")}</div>
+              <div class="admin-row"><strong>Created At:</strong> ${escapeHTML(event.created_at || "")}</div>
+              <div class="admin-row"><strong>Processed At:</strong> ${escapeHTML(event.processed_at || "")}</div>
+              <div class="admin-row"><strong>Error:</strong> ${escapeHTML(event.error_message || "")}</div>
+
+              ${
+                ["failed", "skipped"].includes(
+                  String(event.status || "").trim().toLowerCase()
+                ) &&
+                getNotificationEventRetryCount(event.retry_count) <
+                  state.notificationEventMaxRetries
+                  ? `
+              <button
+                class="status-btn"
+                data-resend-notification-event
+                data-id="${escapeHTML(event.id ?? "")}">
+                Resend Notification
               </button>
+              `
+                  : ""
+              }
+              ${
+                ["failed", "skipped"].includes(
+                  String(event.status || "").trim().toLowerCase()
+                ) &&
+                getNotificationEventRetryCount(event.retry_count) >=
+                  state.notificationEventMaxRetries
+                  ? `
+              <div class="admin-row"><strong>Retry:</strong> Maximum resend attempts reached (${escapeHTML(
+                state.notificationEventMaxRetries
+              )})</div>
+              `
+                  : ""
+              }
+
+              <pre class="json-box">${escapeHTML(
+                JSON.stringify(
+                  event.payload && typeof event.payload === "object" && !Array.isArray(event.payload)
+                    ? event.payload
+                    : {},
+                  null,
+                  2
+                )
+              )}</pre>
             </article>
           `
         )
@@ -319,6 +1145,27 @@ function renderMenuItems() {
 
 function bindEditActions() {
   document.addEventListener("click", async (e) => {
+    const resendNotificationBtn = e.target.closest(
+      "[data-resend-notification-event]"
+    );
+    if (resendNotificationBtn) {
+      const notificationEventId = resendNotificationBtn.dataset.id;
+      if (!notificationEventId) return;
+
+      if (!window.confirm("Resend this notification event now?")) {
+        return;
+      }
+
+      try {
+        await resendNotificationEvent(notificationEventId);
+        await loadTabData();
+      } catch (error) {
+        console.error("Notification resend failed:", error);
+        alert(error.message || "Failed to resend notification event");
+      }
+      return;
+    }
+
     const menuBtn = e.target.closest("[data-edit-menu-item]");
     if (menuBtn) {
       const id = menuBtn.dataset.id;
@@ -340,6 +1187,54 @@ function bindEditActions() {
       document.getElementById("menuSortOrderInput").value = item.sort_order || 0;
       document.getElementById("menuIsAvailableInput").checked = !!item.is_available;
       scrollSectionIntoView("menuFormSection");
+      return;
+    }
+
+    const galleryBtn = e.target.closest("[data-edit-gallery-item]");
+    if (galleryBtn) {
+      const id = galleryBtn.dataset.id;
+      const item = state.galleryItems.find((entry) => String(entry.id) === String(id));
+      if (!item) return;
+
+      setSectionVisibility("galleryFormSection", true);
+      document.getElementById("galleryItemDbId").value = item.id || "";
+      document.getElementById("galleryHotelSlugInput").value = item.hotel_slug || "";
+      document.getElementById("galleryImageUrlInput").value = item.image_url || "";
+      document.getElementById("galleryStoragePathInput").value = item.storage_path || "";
+      document.getElementById("galleryAltInput").value = item.alt || "";
+      document.getElementById("galleryLayoutVariantInput").value = item.layout_variant || "standard";
+      document.getElementById("gallerySortOrderInput").value = item.sort_order || 0;
+      document.getElementById("galleryIsActiveInput").checked = !!item.is_active;
+      scrollSectionIntoView("galleryFormSection");
+      return;
+    }
+
+    const testimonialBtn = e.target.closest("[data-edit-testimonial]");
+    if (testimonialBtn) {
+      const id = testimonialBtn.dataset.id;
+      const item = state.testimonials.find((entry) => String(entry.id) === String(id));
+      if (!item) return;
+
+      setSectionVisibility("testimonialFormSection", true);
+      document.getElementById("testimonialDbId").value = item.id || "";
+      document.getElementById("testimonialHotelSlugInput").value =
+        item.hotel_slug || item.hotelSlug || "";
+      document.getElementById("testimonialNameInput").value =
+        item.guest_name || item.name || "";
+      document.getElementById("testimonialRoleInput").value =
+        item.guest_role || item.role || "";
+      document.getElementById("testimonialTextInput").value =
+        item.review_text || item.text || "";
+      document.getElementById("testimonialStarsInput").value =
+        item.star_rating ?? item.stars ?? 5;
+      document.getElementById("testimonialAvatarInput").value =
+        item.avatar_url || item.avatar || "";
+      document.getElementById("testimonialSortOrderInput").value =
+        item.sort_order ?? item.sortOrder ?? 0;
+      document.getElementById("testimonialIsActiveInput").checked = !!item.is_active;
+      document.getElementById("testimonialIsApprovedInput").checked =
+        item.is_approved !== false;
+      scrollSectionIntoView("testimonialFormSection");
       return;
     }
 
@@ -398,6 +1293,81 @@ if (archiveBtn) {
   return;
 }
 
+const galleryArchiveBtn = e.target.closest("[data-toggle-gallery-archive]");
+if (galleryArchiveBtn) {
+  const id = galleryArchiveBtn.dataset.id;
+  const currentArchived = galleryArchiveBtn.dataset.archived === "true";
+
+  const confirmMessage = currentArchived
+    ? "Restore this gallery item?"
+    : "Archive this gallery item?";
+
+  if (!window.confirm(confirmMessage)) return;
+
+  try {
+    await toggleGalleryArchive(id, !currentArchived);
+    await loadTabData();
+  } catch (error) {
+    console.error("Toggle gallery archive failed:", error);
+    alert("Failed to update gallery item archive state");
+  }
+  return;
+}
+
+const galleryActiveBtn = e.target.closest("[data-toggle-gallery-active]");
+if (galleryActiveBtn) {
+  const id = galleryActiveBtn.dataset.id;
+  const currentActive = galleryActiveBtn.dataset.active === "true";
+
+  const confirmMessage = currentActive
+    ? "Deactivate this gallery item?"
+    : "Activate this gallery item?";
+
+  if (!window.confirm(confirmMessage)) return;
+
+  try {
+    await toggleGalleryActive(id, !currentActive);
+    await loadTabData();
+  } catch (error) {
+    console.error("Toggle gallery active failed:", error);
+    alert("Failed to update gallery item active state");
+  }
+  return;
+}
+
+const deleteGalleryBtn = e.target.closest("[data-delete-gallery-item]");
+if (deleteGalleryBtn) {
+  const id = deleteGalleryBtn.dataset.id;
+  const item = state.galleryItems.find((entry) => String(entry.id) === String(id));
+
+  if (!item || !item.is_archived) {
+    alert("Archive the gallery item before deleting it permanently.");
+    return;
+  }
+
+  if (
+    !window.confirm(
+      "Delete this gallery item permanently? The gallery record will be removed, but the uploaded image file will stay in storage."
+    )
+  ) {
+    return;
+  }
+
+  try {
+    await deleteGalleryItem(id);
+
+    if (String(document.getElementById("galleryItemDbId")?.value || "") === String(id)) {
+      resetGalleryItemForm();
+    }
+
+    await loadTabData();
+  } catch (error) {
+    console.error("Delete gallery item failed:", error);
+    alert("Failed to delete gallery item");
+  }
+  return;
+}
+
 const deleteMenuBtn = e.target.closest("[data-delete-menu-item]");
 if (deleteMenuBtn) {
   const id = deleteMenuBtn.dataset.id;
@@ -412,6 +1382,77 @@ if (deleteMenuBtn) {
   } catch (error) {
     console.error("Delete menu item failed:", error);
     alert("Failed to delete menu item");
+  }
+  return;
+}
+
+const testimonialApprovalBtn = e.target.closest("[data-toggle-testimonial-approval]");
+if (testimonialApprovalBtn) {
+  const id = testimonialApprovalBtn.dataset.id;
+  const currentApproved = testimonialApprovalBtn.dataset.approved === "true";
+
+  const confirmMessage = currentApproved
+    ? "Mark this testimonial as pending so it no longer appears publicly?"
+    : "Approve this testimonial for public display?";
+
+  if (!window.confirm(confirmMessage)) return;
+
+  try {
+    await toggleTestimonialApproval(id, !currentApproved);
+    await loadTabData();
+  } catch (error) {
+    console.error("Toggle testimonial approval failed:", error);
+    alert("Failed to update testimonial approval");
+  }
+  return;
+}
+
+const testimonialArchiveBtn = e.target.closest("[data-toggle-testimonial-archive]");
+if (testimonialArchiveBtn) {
+  const id = testimonialArchiveBtn.dataset.id;
+  const currentArchived = testimonialArchiveBtn.dataset.archived === "true";
+
+  const confirmMessage = currentArchived
+    ? "Restore this testimonial?"
+    : "Archive this testimonial?";
+
+  if (!window.confirm(confirmMessage)) return;
+
+  try {
+    await toggleTestimonialArchive(id, !currentArchived);
+    await loadTabData();
+  } catch (error) {
+    console.error("Toggle testimonial archive failed:", error);
+    alert("Failed to update testimonial archive state");
+  }
+  return;
+}
+
+const deleteTestimonialBtn = e.target.closest("[data-delete-testimonial]");
+if (deleteTestimonialBtn) {
+  const id = deleteTestimonialBtn.dataset.id;
+  const item = state.testimonials.find((entry) => String(entry.id) === String(id));
+
+  if (!item || item.is_archived !== true) {
+    alert("Archive the testimonial before deleting it permanently.");
+    return;
+  }
+
+  if (!window.confirm("Delete this testimonial permanently? This cannot be undone.")) {
+    return;
+  }
+
+  try {
+    await deleteTestimonial(id);
+
+    if (String(document.getElementById("testimonialDbId")?.value || "") === String(id)) {
+      resetTestimonialForm();
+    }
+
+    await loadTabData();
+  } catch (error) {
+    console.error("Delete testimonial failed:", error);
+    alert("Failed to delete testimonial");
   }
   return;
 }
@@ -484,16 +1525,95 @@ function renderHotelFilter() {
   syncMenuFormHotelSlug({ force: true });
 }
 
+function buildOrderContextRows(order = {}) {
+  const orderContext =
+    order.orderContext && typeof order.orderContext === "object" && !Array.isArray(order.orderContext)
+      ? order.orderContext
+      : {};
+  const orderType = order.order_type || orderContext.orderType || "";
+  const tableNumber = order.table_number || orderContext.tableNumber || "";
+  const orderSource = order.order_source || orderContext.orderSource || "";
+  const rows = [];
+
+  if (orderType) {
+    rows.push(
+      `<div class="admin-row"><strong>Order Type:</strong> ${escapeHTML(orderType)}</div>`
+    );
+  }
+
+  if (tableNumber) {
+    rows.push(
+      `<div class="admin-row"><strong>Table:</strong> ${escapeHTML(tableNumber)}</div>`
+    );
+  }
+
+  if (orderSource) {
+    rows.push(
+      `<div class="admin-row"><strong>Source:</strong> ${escapeHTML(orderSource)}</div>`
+    );
+  }
+
+  return rows.join("");
+}
+
+function buildOrderBillingRows(order = {}) {
+  const rows = [];
+
+  if (order.payment_status) {
+    rows.push(
+      `<div class="admin-row"><strong>Payment Status:</strong> ${escapeHTML(order.payment_status)}</div>`
+    );
+  }
+
+  if (order.billing_status) {
+    rows.push(
+      `<div class="admin-row"><strong>Billing Status:</strong> ${escapeHTML(order.billing_status)}</div>`
+    );
+  }
+
+  if (order.bill_number) {
+    rows.push(
+      `<div class="admin-row"><strong>Bill Number:</strong> ${escapeHTML(order.bill_number)}</div>`
+    );
+  }
+
+  if (order.billed_at) {
+    rows.push(
+      `<div class="admin-row"><strong>Billed At:</strong> ${escapeHTML(order.billed_at)}</div>`
+    );
+  }
+
+  if (order.paid_at) {
+    rows.push(
+      `<div class="admin-row"><strong>Paid At:</strong> ${escapeHTML(order.paid_at)}</div>`
+    );
+  }
+
+  return rows.join("");
+}
+
 function renderOrders() {
   const content = $("#adminContent");
   if (!content) return;
 
   if (!state.orders.length) {
-    content.innerHTML = `<p class="empty-state">No orders found.</p>`;
+    content.innerHTML = `
+      ${buildAdminListSummaryCard({
+        title: "Orders",
+        count: 0,
+        description: "Review incoming food orders and update their current status."
+      })}
+      <p class="empty-state">No orders found.</p>
+    `;
     return;
   }
 
   content.innerHTML = `
+    ${buildAdminListSummaryCard({
+      title: "Orders",
+      count: state.orders.length,
+      description: "Review incoming food orders and update their current status."
+    })}
     <div class="admin-grid">
       ${state.orders
         .map(
@@ -506,7 +1626,9 @@ function renderOrders() {
               <div class="admin-row"><strong>Customer:</strong> ${escapeHTML(order.customer_name || "")}</div>
               <div class="admin-row"><strong>Phone:</strong> ${escapeHTML(order.customer_phone || "")}</div>
               <div class="admin-row"><strong>Address:</strong> ${escapeHTML(order.customer_address || "")}</div>
+              ${buildOrderContextRows(order)}
               <div class="admin-row"><strong>Payment:</strong> ${escapeHTML(order.payment_method || "")}</div>
+              ${buildOrderBillingRows(order)}
               <div class="admin-row"><strong>Note:</strong> ${escapeHTML(order.note || "")}</div>
               <div class="admin-row"><strong>Total:</strong> ₹${escapeHTML(order.totals?.total ?? "")}</div>
               <div class="admin-row"><strong>Status:</strong> <span class="status-badge">${escapeHTML(order.status || "new")}</span></div>
@@ -539,11 +1661,23 @@ function renderReservations() {
   if (!content) return;
 
   if (!state.reservations.length) {
-    content.innerHTML = `<p class="empty-state">No reservations found.</p>`;
+    content.innerHTML = `
+      ${buildAdminListSummaryCard({
+        title: "Reservations",
+        count: 0,
+        description: "Review reservation requests and move them through the current seating flow."
+      })}
+      <p class="empty-state">No reservations found.</p>
+    `;
     return;
   }
 
   content.innerHTML = `
+    ${buildAdminListSummaryCard({
+      title: "Reservations",
+      count: state.reservations.length,
+      description: "Review reservation requests and move them through the current seating flow."
+    })}
     <div class="admin-grid">
       ${state.reservations
         .map(
@@ -584,11 +1718,23 @@ function renderInquiries() {
   if (!content) return;
 
   if (!state.inquiries.length) {
-    content.innerHTML = `<p class="empty-state">No inquiries found.</p>`;
+    content.innerHTML = `
+      ${buildAdminListSummaryCard({
+        title: "Inquiries",
+        count: 0,
+        description: "Review event and inquiry submissions for the current hotel scope."
+      })}
+      <p class="empty-state">No inquiries found.</p>
+    `;
     return;
   }
 
   content.innerHTML = `
+    ${buildAdminListSummaryCard({
+      title: "Inquiries",
+      count: state.inquiries.length,
+      description: "Review event and inquiry submissions for the current hotel scope."
+    })}
     <div class="admin-grid">
       ${state.inquiries
         .map(
@@ -630,11 +1776,23 @@ function renderHotels() {
   const hotelsToRender = getFilteredHotels();
 
   if (!hotelsToRender.length) {
-    content.innerHTML = `<p class="empty-state">${getHotelFilterValue() ? "No hotels found for the selected filter." : "No hotels found."}</p>`;
+    content.innerHTML = `
+      ${buildAdminListSummaryCard({
+        title: "Hotels",
+        count: 0,
+        description: "Browse hotel records and jump into hotel or profile editing."
+      })}
+      <p class="empty-state">${getHotelFilterValue() ? "No hotels found for the selected filter." : "No hotels found."}</p>
+    `;
     return;
   }
 
   content.innerHTML = `
+    ${buildAdminListSummaryCard({
+      title: "Hotels",
+      count: hotelsToRender.length,
+      description: "Browse hotel records and jump into hotel or profile editing."
+    })}
     <div class="admin-grid">
       ${hotelsToRender
         .map(
@@ -648,12 +1806,24 @@ function renderHotels() {
               <div class="admin-row"><strong>GST %:</strong> ${escapeHTML(hotel.gst_percent ?? "")}</div>
               <div class="admin-row"><strong>Primary Domain:</strong> ${escapeHTML(hotel.primary_domain || "")}</div>
               <div class="admin-row"><strong>Subdomain:</strong> ${escapeHTML(hotel.subdomain || "")}</div>
-              <div class="admin-row"><strong>Active:</strong> ${escapeHTML(String(hotel.is_active))}</div>
-              <button class="status-btn" data-edit-hotel data-id="${escapeHTML(hotel.id)}">Edit Hotel</button>
-              <button class="status-btn" data-edit-profile data-slug="${escapeHTML(hotel.slug)}">Edit Profile</button>
-              <button class="status-btn" data-toggle-hotel-active data-id="${escapeHTML(hotel.id)}" data-active="${escapeHTML(String(hotel.is_active))}">
-  ${hotel.is_active ? "Deactivate Hotel" : "Activate Hotel"}
-</button>
+              <div class="admin-row admin-state-line">
+                <strong>Status:</strong>
+                <div class="admin-state-list">
+                  ${buildBooleanStateBadge(hotel.is_active, {
+                    onLabel: "Active",
+                    offLabel: "Inactive",
+                    onTone: "success",
+                    offTone: "danger"
+                  })}
+                </div>
+              </div>
+              <div class="status-row admin-card-actions">
+                <button class="status-btn" data-edit-hotel data-id="${escapeHTML(hotel.id)}">Edit Hotel</button>
+                <button class="status-btn" data-edit-profile data-slug="${escapeHTML(hotel.slug)}">Edit Profile</button>
+                <button class="status-btn" data-toggle-hotel-active data-id="${escapeHTML(hotel.id)}" data-active="${escapeHTML(String(hotel.is_active))}">
+                  ${hotel.is_active ? "Deactivate Hotel" : "Activate Hotel"}
+                </button>
+              </div>
             </article>
           `
         )
@@ -690,8 +1860,66 @@ function bindHotelFilter() {
 
   select.addEventListener("change", async () => {
     syncMenuFormHotelSlug({ force: true });
+    syncGalleryFormHotelSlug({ force: true });
+    syncNotificationSettingsHotelSlug();
+    syncQrTableLinkHotelSlug({ force: true });
     await loadTabData();
   });
+}
+
+function bindListFilters() {
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+
+    if (!(target instanceof HTMLInputElement)) {
+      return;
+    }
+
+    if (target.matches("[data-menu-item-search]")) {
+      const nextValue = target.value || "";
+      const selectionStart = target.selectionStart ?? nextValue.length;
+      const selectionEnd = target.selectionEnd ?? nextValue.length;
+
+      state.menuItemSearchQuery = nextValue;
+
+      if (state.activeTab === "menu-items") {
+        renderMenuItems();
+
+        const nextInput = document.querySelector("[data-menu-item-search]");
+        if (nextInput instanceof HTMLInputElement) {
+          nextInput.focus();
+
+          try {
+            nextInput.setSelectionRange(selectionStart, selectionEnd);
+          } catch (error) {
+            console.warn("Menu item search cursor restore failed:", error);
+          }
+        }
+      }
+    }
+  });
+}
+
+function openUploadSectionWithConfig({
+  hotelSlug = "",
+  folder = "misc",
+  targetFieldId = "",
+  storageTargetFieldId = ""
+} = {}) {
+  const uploadHotelSlugInput = document.getElementById("uploadHotelSlugInput");
+  const uploadFolderInput = document.getElementById("uploadFolderInput");
+  const uploadTargetFieldInput = document.getElementById("uploadTargetFieldInput");
+  const uploadStorageTargetFieldInput = document.getElementById("uploadStorageTargetFieldInput");
+
+  if (uploadHotelSlugInput) uploadHotelSlugInput.value = hotelSlug || "shared";
+  if (uploadFolderInput) uploadFolderInput.value = folder || "misc";
+  if (uploadTargetFieldInput) uploadTargetFieldInput.value = targetFieldId || "";
+  if (uploadStorageTargetFieldInput) {
+    uploadStorageTargetFieldInput.value = storageTargetFieldId || "";
+  }
+
+  setSectionVisibility("uploadSection", true);
+  scrollSectionIntoView("uploadSection");
 }
 
 function bindStatusActions() {
@@ -725,16 +1953,62 @@ function bindStatusActions() {
 function bindFormToggles() {
   const hotelBtn = document.getElementById("openHotelFormBtn");
   const menuBtn = document.getElementById("openMenuFormBtn");
-const profileBtn = document.getElementById("openProfileFormBtn");
+  const galleryBtn = document.getElementById("openGalleryFormBtn");
+  const testimonialBtn = document.getElementById("openTestimonialFormBtn");
+  const notificationSettingsBtn = document.getElementById(
+    "openNotificationSettingsBtn"
+  );
+  const profileBtn = document.getElementById("openProfileFormBtn");
+  const qrTableLinkBtn = document.getElementById("openQrTableLinkBtn");
 
-if (profileBtn) {
-  profileBtn.addEventListener("click", () => {
-    const isVisible = setSectionVisibility("profileFormSection");
-    if (isVisible) {
-      scrollSectionIntoView("profileFormSection");
-    }
+  if (
+    notificationSettingsBtn &&
+    notificationSettingsBtn.dataset.boundClick !== "true"
+  ) {
+    notificationSettingsBtn.addEventListener("click", async () => {
+      syncNotificationSettingsHotelSlug({ force: true });
+      const isVisible = setSectionVisibility("notificationSettingsSection");
+
+      if (!isVisible) return;
+
+      const hotelSlug =
+        document.getElementById("notificationSettingsHotelSlugInput")?.value.trim() || "";
+
+      if (hotelSlug) {
+        try {
+          const result = await fetchNotificationSettings(hotelSlug);
+          fillNotificationSettingsForm(result.settings || {});
+        } catch (error) {
+          console.error("Failed to load notification settings:", error);
+          alert(error.message || "Failed to load notification settings");
+        }
+      } else {
+        resetNotificationSettingsForm();
+      }
+
+      scrollSectionIntoView("notificationSettingsSection");
+    });
+    notificationSettingsBtn.dataset.boundClick = "true";
+  }
+
+  if (profileBtn) {
+    profileBtn.addEventListener("click", () => {
+      const isVisible = setSectionVisibility("profileFormSection");
+      if (isVisible) {
+        scrollSectionIntoView("profileFormSection");
+      }
   });
 }
+
+  if (qrTableLinkBtn) {
+    qrTableLinkBtn.addEventListener("click", () => {
+      syncQrTableLinkHotelSlug({ force: true });
+      const isVisible = setSectionVisibility("qrTableLinkSection");
+      if (isVisible) {
+        scrollSectionIntoView("qrTableLinkSection");
+      }
+    });
+  }
 
   if (hotelBtn) {
     hotelBtn.addEventListener("click", () => {
@@ -754,6 +2028,125 @@ if (profileBtn) {
       }
     });
   }
+
+  if (galleryBtn) {
+    galleryBtn.addEventListener("click", () => {
+      syncGalleryFormHotelSlug({ force: true });
+      const isVisible = setSectionVisibility("galleryFormSection");
+      if (isVisible) {
+        scrollSectionIntoView("galleryFormSection");
+      }
+    });
+  }
+
+  if (testimonialBtn) {
+    testimonialBtn.addEventListener("click", () => {
+      syncTestimonialFormHotelSlug({ force: true });
+      const isVisible = setSectionVisibility("testimonialFormSection");
+      if (isVisible) {
+        scrollSectionIntoView("testimonialFormSection");
+      }
+    });
+  }
+}
+
+function bindQrTableLinkHelper() {
+  const form = document.getElementById("qrTableLinkForm");
+  const copyBtn = document.getElementById("copyQrTableLinkBtn");
+  const previewLink = document.getElementById("qrTableLinkPreview");
+  const inputs = [
+    document.getElementById("qrLinkHotelSlugInput"),
+    document.getElementById("qrLinkTableNumberInput"),
+    document.getElementById("qrLinkTargetPageInput")
+  ].filter(Boolean);
+
+  if (form && form.dataset.boundSubmit !== "true") {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      generateQrTableLink();
+    });
+    form.dataset.boundSubmit = "true";
+  }
+
+  if (copyBtn && copyBtn.dataset.boundClick !== "true") {
+    copyBtn.addEventListener("click", () => {
+      void copyQrTableLink();
+    });
+    copyBtn.dataset.boundClick = "true";
+  }
+
+  if (previewLink && previewLink.dataset.boundClick !== "true") {
+    previewLink.addEventListener("click", (event) => {
+      if (!previewLink.getAttribute("href") || previewLink.getAttribute("href") === "#") {
+        event.preventDefault();
+        generateQrTableLink();
+      }
+    });
+    previewLink.dataset.boundClick = "true";
+  }
+
+  inputs.forEach((input) => {
+    if (input.dataset.boundQrLinkChange === "true") return;
+    input.addEventListener("input", () => {
+      updateQrTableLinkOutput("", "QR link inputs changed. Generate a fresh link before copying.");
+    });
+    input.addEventListener("change", () => {
+      updateQrTableLinkOutput("", "QR link inputs changed. Generate a fresh link before copying.");
+    });
+    input.dataset.boundQrLinkChange = "true";
+  });
+}
+
+function bindGalleryUploadHelper() {
+  const btn = document.getElementById("galleryUploadHelperBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
+    const hotelSlug =
+      document.getElementById("galleryHotelSlugInput")?.value.trim() ||
+      getSelectedHotelSlug() ||
+      "shared";
+
+    openUploadSectionWithConfig({
+      hotelSlug,
+      folder: "gallery",
+      targetFieldId: "galleryImageUrlInput",
+      storageTargetFieldId: "galleryStoragePathInput"
+    });
+  });
+}
+
+function bindProfileAboutImageUploadHelpers() {
+  const helperConfigs = [
+    {
+      buttonId: "profileAboutPrimaryImageUploadBtn",
+      targetFieldId: "profileAboutPrimaryImageUrlInput"
+    },
+    {
+      buttonId: "profileAboutSecondaryImageUploadBtn",
+      targetFieldId: "profileAboutSecondaryImageUrlInput"
+    }
+  ];
+
+  helperConfigs.forEach(({ buttonId, targetFieldId }) => {
+    const btn = document.getElementById(buttonId);
+    if (!btn || btn.dataset.boundClick === "true") return;
+
+    btn.addEventListener("click", () => {
+      const hotelSlug =
+        document.getElementById("profileHotelSlugInput")?.value.trim() ||
+        getSelectedHotelSlug() ||
+        "shared";
+
+      openUploadSectionWithConfig({
+        hotelSlug,
+        folder: "about",
+        targetFieldId
+      });
+    });
+
+    btn.dataset.boundClick = "true";
+  });
 }
 
 async function createHotel(payload) {
@@ -788,6 +2181,46 @@ async function createMenuItem(payload) {
 
 async function updateMenuItem(id, payload) {
   return fetchJson(`${API_BASE}/menu-items/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+async function createGalleryItem(payload) {
+  return fetchJson(`${API_BASE}/gallery-items`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+async function updateGalleryItem(id, payload) {
+  return fetchJson(`${API_BASE}/gallery-items/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+async function createTestimonial(payload) {
+  return fetchJson(`${API_BASE}/testimonials`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+async function updateTestimonial(id, payload) {
+  return fetchJson(`${API_BASE}/testimonials/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json"
@@ -843,6 +2276,7 @@ function bindHotelForm() {
 
       resetHotelForm();
       syncMenuFormHotelSlug({ force: true });
+      syncGalleryFormHotelSlug({ force: true });
       await loadTabData();
     } catch (error) {
       console.error("Hotel form submit failed:", error);
@@ -912,12 +2346,134 @@ function bindMenuItemForm() {
   });
 }
 
+function bindGalleryItemForm() {
+  const form = document.getElementById("galleryItemForm");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const submitButton = e.submitter || form.querySelector('button[type="submit"]');
+    const id = document.getElementById("galleryItemDbId")?.value.trim();
+
+    const payload = {
+      hotelSlug: document.getElementById("galleryHotelSlugInput")?.value.trim(),
+      imageUrl: document.getElementById("galleryImageUrlInput")?.value.trim(),
+      storagePath: document.getElementById("galleryStoragePathInput")?.value.trim(),
+      alt: document.getElementById("galleryAltInput")?.value.trim(),
+      layoutVariant: document.getElementById("galleryLayoutVariantInput")?.value.trim() || "standard",
+      sortOrder: Number(document.getElementById("gallerySortOrderInput")?.value || 0),
+      isActive: !!document.getElementById("galleryIsActiveInput")?.checked
+    };
+
+    try {
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = id ? "Updating gallery item..." : "Creating gallery item...";
+      }
+
+      if (id) {
+        await updateGalleryItem(id, payload);
+        alert("Gallery item updated successfully");
+      } else {
+        await createGalleryItem(payload);
+        alert("Gallery item created successfully");
+      }
+
+      resetGalleryItemForm();
+
+      if (state.activeTab === "gallery-items") {
+        await loadTabData();
+      }
+    } catch (error) {
+      console.error("Gallery form submit failed:", error);
+      alert("Failed to save gallery item");
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Save Gallery Item";
+      }
+    }
+  });
+}
+
+function bindTestimonialForm() {
+  const form = document.getElementById("testimonialForm");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const submitButton = e.submitter || form.querySelector('button[type="submit"]');
+    const id = document.getElementById("testimonialDbId")?.value.trim();
+
+    const payload = {
+      hotelSlug: document.getElementById("testimonialHotelSlugInput")?.value.trim(),
+      name: document.getElementById("testimonialNameInput")?.value.trim(),
+      role: document.getElementById("testimonialRoleInput")?.value.trim(),
+      text: document.getElementById("testimonialTextInput")?.value.trim(),
+      stars: Number(document.getElementById("testimonialStarsInput")?.value || 5),
+      avatar: document.getElementById("testimonialAvatarInput")?.value.trim(),
+      sortOrder: Number(document.getElementById("testimonialSortOrderInput")?.value || 0),
+      isActive: !!document.getElementById("testimonialIsActiveInput")?.checked,
+      isApproved: !!document.getElementById("testimonialIsApprovedInput")?.checked
+    };
+
+    try {
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = id
+          ? "Updating testimonial..."
+          : "Creating testimonial...";
+      }
+
+      if (id) {
+        await updateTestimonial(id, payload);
+        alert("Testimonial updated successfully");
+      } else {
+        await createTestimonial(payload);
+        alert("Testimonial created successfully");
+      }
+
+      resetTestimonialForm();
+
+      if (state.activeTab === "testimonials") {
+        await loadTabData();
+      }
+    } catch (error) {
+      console.error("Testimonial form submit failed:", error);
+      alert(error.message || "Failed to save testimonial");
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Save Testimonial";
+      }
+    }
+  });
+}
+
 async function fetchHotelProfile(slug) {
   return fetchJson(`${API_BASE}/hotel-profiles/${encodeURIComponent(slug)}`);
 }
 
+async function fetchNotificationSettings(slug) {
+  return fetchJson(
+    `${API_BASE}/notification-settings/${encodeURIComponent(slug)}`
+  );
+}
+
 async function saveHotelProfile(payload) {
   return fetchJson(`${API_BASE}/hotel-profiles`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+async function saveNotificationSettings(payload) {
+  return fetchJson(`${API_BASE}/notification-settings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -942,16 +2498,1050 @@ function formatJson(value) {
   return JSON.stringify(value ?? null, null, 2);
 }
 
+function cloneThemeValue(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return JSON.parse(JSON.stringify(value));
+}
+
+function getCurrentProfileHeroBase() {
+  const currentHotelSlug = document.getElementById("profileHotelSlugInput")?.value.trim() || "";
+
+  if (currentHotelSlug && currentHotelSlug === state.profileHeroHotelSlug) {
+    return cloneThemeValue(state.profileHeroBase);
+  }
+
+  return {};
+}
+
+function getTrimmedInputValue(id) {
+  return document.getElementById(id)?.value.trim() || "";
+}
+
+function getValidProfileHeroScenePreset(value) {
+  const candidate = String(value || "").trim().toLowerCase();
+  return PROFILE_HERO_SCENE_PRESETS[candidate] ? candidate : "";
+}
+
+function getOptionalNumberInputValue(id, label) {
+  const rawValue = getTrimmedInputValue(id);
+
+  if (!rawValue) {
+    return null;
+  }
+
+  const parsedValue = Number(rawValue);
+
+  if (!Number.isFinite(parsedValue)) {
+    throw new Error(`${label} must be a valid number.`);
+  }
+
+  return parsedValue;
+}
+
+function getCurrentProfileThemeBase() {
+  const currentHotelSlug = document.getElementById("profileHotelSlugInput")?.value.trim() || "";
+
+  if (currentHotelSlug && currentHotelSlug === state.profileThemeHotelSlug) {
+    return cloneThemeValue(state.profileThemeBase);
+  }
+
+  return {};
+}
+
+function validateCssColorValue(value) {
+  const candidate = String(value || "").trim();
+  if (!candidate) return true;
+
+  if (window.CSS && typeof window.CSS.supports === "function") {
+    return window.CSS.supports("color", candidate);
+  }
+
+  return true;
+}
+
+function validateCssRadiusValue(value) {
+  const candidate = String(value || "").trim();
+  if (!candidate) return true;
+
+  if (window.CSS && typeof window.CSS.supports === "function") {
+    return window.CSS.supports("border-radius", candidate);
+  }
+
+  return true;
+}
+
+function getValidProfileThemeTypographyPreset(value) {
+  const candidate = String(value || "").trim().toLowerCase();
+  return PROFILE_THEME_FONT_PRESETS[candidate] ? candidate : "";
+}
+
+function getSelectedProfileThemeTypographyPreset() {
+  return getValidProfileThemeTypographyPreset(
+    document.getElementById("profileThemeTypographyPresetInput")?.value
+  );
+}
+
+function getValidProfileThemeContainerPreset(value) {
+  const candidate = String(value || "").trim().toLowerCase();
+  return PROFILE_THEME_CONTAINER_PRESETS[candidate] ? candidate : "";
+}
+
+function getSelectedProfileThemeContainerPreset() {
+  return getValidProfileThemeContainerPreset(
+    document.getElementById("profileThemeContainerPresetInput")?.value
+  );
+}
+
+function getValidProfileThemeButtonPreset(value) {
+  const candidate = String(value || "").trim().toLowerCase();
+  return PROFILE_THEME_BUTTON_PRESETS[candidate] ? candidate : "";
+}
+
+function getSelectedProfileThemeButtonPreset() {
+  return getValidProfileThemeButtonPreset(
+    document.getElementById("profileThemeButtonPresetInput")?.value
+  );
+}
+
+function getValidProfileThemeHeroLayoutPreset(value) {
+  const candidate = String(value || "").trim().toLowerCase();
+  return PROFILE_THEME_HERO_LAYOUT_PRESETS[candidate] ? candidate : "";
+}
+
+function getSelectedProfileThemeHeroLayoutPreset() {
+  return getValidProfileThemeHeroLayoutPreset(
+    document.getElementById("profileThemeHeroLayoutPresetInput")?.value
+  );
+}
+
+function normalizeProfileThemeSectionOrder(order) {
+  if (!Array.isArray(order)) return [];
+
+  const seen = new Set();
+
+  return order.reduce((nextOrder, value) => {
+    const candidate = String(value || "").trim().toLowerCase();
+
+    if (!PROFILE_THEME_SECTION_ORDER.includes(candidate) || seen.has(candidate)) {
+      return nextOrder;
+    }
+
+    seen.add(candidate);
+    nextOrder.push(candidate);
+    return nextOrder;
+  }, []);
+}
+
+function areThemeSectionOrdersEqual(left = [], right = []) {
+  if (left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
+}
+
+function getEffectiveProfileThemeSectionOrder(theme) {
+  const savedOrder = normalizeProfileThemeSectionOrder(theme?.sections?.order);
+
+  return [
+    ...savedOrder,
+    ...PROFILE_THEME_SECTION_ORDER.filter((sectionId) => !savedOrder.includes(sectionId))
+  ];
+}
+
+function getProfileThemeSectionVisibilityMap() {
+  return {
+    about: Boolean(document.getElementById("profileThemeShowAboutInput")?.checked),
+    menu: true,
+    reservation: Boolean(document.getElementById("profileThemeShowReservationInput")?.checked),
+    events: Boolean(document.getElementById("profileThemeShowEventsInput")?.checked),
+    gallery: Boolean(document.getElementById("profileThemeShowGalleryInput")?.checked),
+    testimonials: Boolean(document.getElementById("profileThemeShowTestimonialsInput")?.checked),
+    contact: true
+  };
+}
+
+function syncProfileThemeSectionOrderList() {
+  const list = document.getElementById("profileThemeSectionOrderList");
+  if (!list) return;
+
+  const items = [...list.querySelectorAll("[data-theme-section-id]")];
+
+  items.forEach((item, index) => {
+    const indexEl = item.querySelector("[data-theme-order-index]");
+    const upBtn = item.querySelector('[data-move-theme-section="up"]');
+    const downBtn = item.querySelector('[data-move-theme-section="down"]');
+
+    if (indexEl) {
+      indexEl.textContent = String(index + 1);
+    }
+
+    if (upBtn) {
+      upBtn.disabled = index === 0;
+    }
+
+    if (downBtn) {
+      downBtn.disabled = index === items.length - 1;
+    }
+  });
+}
+
+function syncProfileThemeSectionOrderStates() {
+  const list = document.getElementById("profileThemeSectionOrderList");
+  if (!list) return;
+
+  const visibilityMap = getProfileThemeSectionVisibilityMap();
+
+  [...list.querySelectorAll("[data-theme-section-id]")].forEach((item) => {
+    const sectionId = item.dataset.themeSectionId || "";
+    const stateEl = item.querySelector("[data-theme-order-state]");
+
+    if (!stateEl) return;
+
+    const isVisible = visibilityMap[sectionId] !== false;
+
+    stateEl.textContent = isVisible ? "Visible" : "Hidden";
+    stateEl.classList.toggle("is-hidden", !isVisible);
+    item.setAttribute("data-theme-section-hidden", isVisible ? "false" : "true");
+  });
+}
+
+function renderProfileThemeSectionOrder(order) {
+  const list = document.getElementById("profileThemeSectionOrderList");
+  if (!list) return;
+
+  const effectiveOrder = normalizeProfileThemeSectionOrder(order);
+  const orderedSections = effectiveOrder.length
+    ? effectiveOrder
+    : [...PROFILE_THEME_SECTION_ORDER];
+
+  list.innerHTML = orderedSections
+    .map(
+      (sectionId, index) => `
+        <div class="theme-order-item" data-theme-section-id="${escapeHTML(sectionId)}">
+          <div class="theme-order-label">
+            <span class="theme-order-index" data-theme-order-index>${index + 1}</span>
+            <div class="theme-order-meta">
+              <span class="theme-order-name">${escapeHTML(
+                PROFILE_THEME_SECTION_LABELS[sectionId] || sectionId
+              )}</span>
+              <span class="theme-order-state" data-theme-order-state>Visible</span>
+            </div>
+          </div>
+          <div class="theme-order-actions">
+            <button
+              type="button"
+              class="admin-tab"
+              data-move-theme-section="up"
+              aria-label="Move ${escapeHTML(
+                PROFILE_THEME_SECTION_LABELS[sectionId] || sectionId
+              )} up"
+            >
+              Up
+            </button>
+            <button
+              type="button"
+              class="admin-tab"
+              data-move-theme-section="down"
+              aria-label="Move ${escapeHTML(
+                PROFILE_THEME_SECTION_LABELS[sectionId] || sectionId
+              )} down"
+            >
+              Down
+            </button>
+          </div>
+        </div>
+      `
+    )
+    .join("");
+
+  syncProfileThemeSectionOrderList();
+  syncProfileThemeSectionOrderStates();
+}
+
+function getCurrentProfileThemeSectionOrder() {
+  const list = document.getElementById("profileThemeSectionOrderList");
+  if (!list) {
+    return [...PROFILE_THEME_SECTION_ORDER];
+  }
+
+  return normalizeProfileThemeSectionOrder(
+    [...list.querySelectorAll("[data-theme-section-id]")].map(
+      (item) => item.dataset.themeSectionId || ""
+    )
+  );
+}
+
+function syncProfileThemeSectionOrderDirtyState() {
+  const loadedOrder = getEffectiveProfileThemeSectionOrder(getCurrentProfileThemeBase());
+  const currentOrder = getCurrentProfileThemeSectionOrder();
+
+  state.profileThemeSectionOrderDirty = !areThemeSectionOrdersEqual(currentOrder, loadedOrder);
+}
+
+function moveProfileThemeSectionOrder(button) {
+  const list = document.getElementById("profileThemeSectionOrderList");
+  const item = button?.closest("[data-theme-section-id]");
+  const direction = button?.dataset.moveThemeSection;
+
+  if (!list || !item || !direction) return;
+
+  if (direction === "up") {
+    const previousItem = item.previousElementSibling;
+    if (!previousItem) return;
+    list.insertBefore(item, previousItem);
+  } else if (direction === "down") {
+    const nextItem = item.nextElementSibling;
+    if (!nextItem) return;
+    list.insertBefore(nextItem, item);
+  } else {
+    return;
+  }
+
+  syncProfileThemeSectionOrderList();
+  syncProfileThemeSectionOrderStates();
+  syncProfileThemeSectionOrderDirtyState();
+}
+
+function validateProfileThemeInputs(form) {
+  const fields = [
+    {
+      id: "profileThemePrimaryInput",
+      label: "Primary accent color",
+      isValid: validateCssColorValue
+    },
+    {
+      id: "profileThemePrimaryLightInput",
+      label: "Primary light color",
+      isValid: validateCssColorValue
+    },
+    {
+      id: "profileThemePrimaryDarkInput",
+      label: "Primary dark color",
+      isValid: validateCssColorValue
+    },
+    {
+      id: "profileThemeBackgroundInput",
+      label: "Background color",
+      isValid: validateCssColorValue
+    },
+    {
+      id: "profileThemeBackgroundAltInput",
+      label: "Alternate background color",
+      isValid: validateCssColorValue
+    },
+    {
+      id: "profileThemeTextInput",
+      label: "Text color",
+      isValid: validateCssColorValue
+    },
+    {
+      id: "profileThemeTextMutedInput",
+      label: "Muted text color",
+      isValid: validateCssColorValue
+    },
+    {
+      id: "profileThemeLoadingBackgroundColorInput",
+      label: "Loader background color",
+      isValid: validateCssColorValue
+    },
+    {
+      id: "profileThemeLoadingAccentColorInput",
+      label: "Loader accent color",
+      isValid: validateCssColorValue
+    },
+    {
+      id: "profileThemeLoadingTextColorInput",
+      label: "Loader text color",
+      isValid: validateCssColorValue
+    },
+    {
+      id: "profileThemeRadiusBaseInput",
+      label: "Base radius",
+      isValid: validateCssRadiusValue
+    },
+    {
+      id: "profileThemeRadiusSmallInput",
+      label: "Small radius",
+      isValid: validateCssRadiusValue
+    }
+  ];
+
+  let firstInvalidInput = null;
+
+  fields.forEach(({ id, label, isValid }) => {
+    const input = form.querySelector(`#${id}`);
+    if (!input) return;
+
+    input.setCustomValidity("");
+
+    const value = input.value.trim();
+    if (!value || isValid(value)) return;
+
+    input.setCustomValidity(
+      `${label} must be a valid CSS ${id.includes("Radius") ? "border-radius" : "color"} value.`
+    );
+
+    if (!firstInvalidInput) {
+      firstInvalidInput = input;
+    }
+  });
+
+  if (firstInvalidInput) {
+    firstInvalidInput.reportValidity();
+    firstInvalidInput.focus();
+    return false;
+  }
+
+  return true;
+}
+
+function fillProfileThemeFields(theme) {
+  const safeTheme = cloneThemeValue(theme);
+  const colors =
+    safeTheme.colors && typeof safeTheme.colors === "object" && !Array.isArray(safeTheme.colors)
+      ? safeTheme.colors
+      : {};
+  const radius =
+    safeTheme.radius && typeof safeTheme.radius === "object" && !Array.isArray(safeTheme.radius)
+      ? safeTheme.radius
+      : {};
+  const typography =
+    safeTheme.typography &&
+    typeof safeTheme.typography === "object" &&
+    !Array.isArray(safeTheme.typography)
+      ? safeTheme.typography
+      : {};
+  const layout =
+    safeTheme.layout &&
+    typeof safeTheme.layout === "object" &&
+    !Array.isArray(safeTheme.layout)
+      ? safeTheme.layout
+      : {};
+  const buttons =
+    safeTheme.buttons &&
+    typeof safeTheme.buttons === "object" &&
+    !Array.isArray(safeTheme.buttons)
+      ? safeTheme.buttons
+      : {};
+  const hero =
+    safeTheme.hero && typeof safeTheme.hero === "object" && !Array.isArray(safeTheme.hero)
+      ? safeTheme.hero
+      : {};
+  const loadingScreen =
+    safeTheme.loadingScreen &&
+    typeof safeTheme.loadingScreen === "object" &&
+    !Array.isArray(safeTheme.loadingScreen)
+      ? safeTheme.loadingScreen
+      : {};
+  const sections =
+    safeTheme.sections &&
+    typeof safeTheme.sections === "object" &&
+    !Array.isArray(safeTheme.sections)
+      ? safeTheme.sections
+      : {};
+
+  document.getElementById("profileThemePrimaryInput").value = colors.primary || "";
+  document.getElementById("profileThemePrimaryLightInput").value = colors.primaryLight || "";
+  document.getElementById("profileThemePrimaryDarkInput").value = colors.primaryDark || "";
+  document.getElementById("profileThemeBackgroundInput").value = colors.background || "";
+  document.getElementById("profileThemeBackgroundAltInput").value = colors.backgroundAlt || "";
+  document.getElementById("profileThemeTextInput").value = colors.text || "";
+  document.getElementById("profileThemeTextMutedInput").value = colors.textMuted || "";
+  document.getElementById("profileThemeRadiusBaseInput").value = radius.base || "";
+  document.getElementById("profileThemeRadiusSmallInput").value = radius.small || "";
+  document.getElementById("profileThemeLoadingLogoPrimaryInput").value =
+    loadingScreen.logoPrimaryText || "";
+  document.getElementById("profileThemeLoadingLogoSecondaryInput").value =
+    loadingScreen.logoSecondaryText || "";
+  document.getElementById("profileThemeLoadingTaglineInput").value =
+    loadingScreen.tagline || "";
+  document.getElementById("profileThemeLoadingBackgroundColorInput").value =
+    loadingScreen.backgroundColor || "";
+  document.getElementById("profileThemeLoadingAccentColorInput").value =
+    loadingScreen.accentColor || "";
+  document.getElementById("profileThemeLoadingTextColorInput").value =
+    loadingScreen.textColor || "";
+  document.getElementById("profileThemeTypographyPresetInput").value =
+    getValidProfileThemeTypographyPreset(typography.preset);
+  document.getElementById("profileThemeContainerPresetInput").value =
+    getValidProfileThemeContainerPreset(layout.containerPreset);
+  document.getElementById("profileThemeButtonPresetInput").value =
+    getValidProfileThemeButtonPreset(buttons.preset);
+  document.getElementById("profileThemeHeroLayoutPresetInput").value =
+    getValidProfileThemeHeroLayoutPreset(hero.layoutVariant);
+  document.getElementById("profileThemeShowAboutInput").checked = sections.about !== false;
+  document.getElementById("profileThemeShowEventsInput").checked = sections.events !== false;
+  document.getElementById("profileThemeShowReservationInput").checked =
+    sections.reservation !== false;
+  document.getElementById("profileThemeShowGalleryInput").checked = sections.gallery !== false;
+  document.getElementById("profileThemeShowTestimonialsInput").checked =
+    sections.testimonials !== false;
+  renderProfileThemeSectionOrder(getEffectiveProfileThemeSectionOrder(safeTheme));
+  syncProfileThemeSectionOrderDirtyState();
+}
+
+function getThemePreviewColorValue(inputId, baseValue, defaultValue) {
+  const currentValue = getTrimmedInputValue(inputId);
+  if (currentValue && validateCssColorValue(currentValue)) {
+    return currentValue;
+  }
+
+  return baseValue || defaultValue;
+}
+
+function getThemePreviewRadiusValue(inputId, baseValue, defaultValue) {
+  const currentValue = getTrimmedInputValue(inputId);
+  if (currentValue && validateCssRadiusValue(currentValue)) {
+    return currentValue;
+  }
+
+  return baseValue || defaultValue;
+}
+
+function getThemePreviewFontPreset(baseTheme) {
+  const selectedPreset = getSelectedProfileThemeTypographyPreset();
+  if (selectedPreset) {
+    return PROFILE_THEME_FONT_PRESETS[selectedPreset];
+  }
+
+  const basePreset = getValidProfileThemeTypographyPreset(baseTheme?.typography?.preset);
+  return PROFILE_THEME_FONT_PRESETS[basePreset] || PROFILE_THEME_FONT_PRESETS.default;
+}
+
+function getThemePreviewButtonPreset(baseTheme) {
+  const selectedPreset = getSelectedProfileThemeButtonPreset();
+  if (selectedPreset) return selectedPreset;
+
+  const basePreset = getValidProfileThemeButtonPreset(baseTheme?.buttons?.preset);
+  return basePreset || "default";
+}
+
+function getThemePreviewHeroLayoutPreset(baseTheme) {
+  const selectedPreset = getSelectedProfileThemeHeroLayoutPreset();
+  if (selectedPreset) return selectedPreset;
+
+  const basePreset = getValidProfileThemeHeroLayoutPreset(baseTheme?.hero?.layoutVariant);
+  return basePreset || "default";
+}
+
+function getThemePreviewButtonStyles(presetKey, colors) {
+  if (presetKey === "solid") {
+    return {
+      radius: "14px",
+      primaryBackground: colors.primary,
+      primaryBorder: `1px solid ${colors.primaryDark}`,
+      primaryShadow: "0 4px 16px rgba(201, 168, 76, 0.28)",
+      outlineBorder: `1px solid ${colors.primary}`,
+      outlineBackground: "transparent"
+    };
+  }
+
+  if (presetKey === "crisp") {
+    return {
+      radius: "8px",
+      primaryBackground: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryLight})`,
+      primaryBorder: `1px solid ${colors.primaryDark}`,
+      primaryShadow: "0 4px 18px rgba(160, 120, 48, 0.28)",
+      outlineBorder: "1.5px solid rgba(255, 255, 255, 0.75)",
+      outlineBackground: "transparent"
+    };
+  }
+
+  return {
+    radius: "100px",
+    primaryBackground: `linear-gradient(135deg, ${colors.primaryDark}, ${colors.primary})`,
+    primaryBorder: "1px solid transparent",
+    primaryShadow: "0 4px 20px rgba(201, 168, 76, 0.35)",
+    outlineBorder: "1.5px solid rgba(255, 255, 255, 0.6)",
+    outlineBackground: "transparent"
+  };
+}
+
+function updateProfileThemePreview() {
+  const previewCard = document.getElementById("profileThemePreviewCard");
+  const previewTop = document.getElementById("profileThemePreviewTop");
+  const previewSurface = document.getElementById("profileThemePreviewSurface");
+  const previewEyebrow = document.getElementById("profileThemePreviewEyebrow");
+  const previewTitle = document.getElementById("profileThemePreviewTitle");
+  const previewBody = document.getElementById("profileThemePreviewBody");
+  const previewMuted = document.getElementById("profileThemePreviewMuted");
+  const previewOutlineBtn = document.getElementById("profileThemePreviewOutlineBtn");
+  const previewPrimaryBtn = document.getElementById("profileThemePreviewPrimaryBtn");
+  const previewChip = document.getElementById("profileThemePreviewChip");
+
+  if (
+    !previewCard ||
+    !previewTop ||
+    !previewSurface ||
+    !previewEyebrow ||
+    !previewTitle ||
+    !previewBody ||
+    !previewMuted ||
+    !previewOutlineBtn ||
+    !previewPrimaryBtn ||
+    !previewChip
+  ) {
+    return;
+  }
+
+  const baseTheme = getCurrentProfileThemeBase();
+  const baseColors =
+    baseTheme.colors && typeof baseTheme.colors === "object" && !Array.isArray(baseTheme.colors)
+      ? baseTheme.colors
+      : {};
+  const baseRadius =
+    baseTheme.radius && typeof baseTheme.radius === "object" && !Array.isArray(baseTheme.radius)
+      ? baseTheme.radius
+      : {};
+  const fontPreset = getThemePreviewFontPreset(baseTheme);
+  const buttonPresetKey = getThemePreviewButtonPreset(baseTheme);
+  const heroLayoutPresetKey = getThemePreviewHeroLayoutPreset(baseTheme);
+
+  const colors = {
+    primary: getThemePreviewColorValue(
+      "profileThemePrimaryInput",
+      baseColors.primary,
+      PROFILE_THEME_DEFAULTS.colors.primary
+    ),
+    primaryLight: getThemePreviewColorValue(
+      "profileThemePrimaryLightInput",
+      baseColors.primaryLight,
+      PROFILE_THEME_DEFAULTS.colors.primaryLight
+    ),
+    primaryDark: getThemePreviewColorValue(
+      "profileThemePrimaryDarkInput",
+      baseColors.primaryDark,
+      PROFILE_THEME_DEFAULTS.colors.primaryDark
+    ),
+    background: getThemePreviewColorValue(
+      "profileThemeBackgroundInput",
+      baseColors.background,
+      PROFILE_THEME_DEFAULTS.colors.background
+    ),
+    backgroundAlt: getThemePreviewColorValue(
+      "profileThemeBackgroundAltInput",
+      baseColors.backgroundAlt,
+      PROFILE_THEME_DEFAULTS.colors.backgroundAlt
+    ),
+    text: getThemePreviewColorValue(
+      "profileThemeTextInput",
+      baseColors.text,
+      PROFILE_THEME_DEFAULTS.colors.text
+    ),
+    textMuted: getThemePreviewColorValue(
+      "profileThemeTextMutedInput",
+      baseColors.textMuted,
+      PROFILE_THEME_DEFAULTS.colors.textMuted
+    )
+  };
+  const radius = {
+    base: getThemePreviewRadiusValue(
+      "profileThemeRadiusBaseInput",
+      baseRadius.base,
+      PROFILE_THEME_DEFAULTS.radius.base
+    ),
+    small: getThemePreviewRadiusValue(
+      "profileThemeRadiusSmallInput",
+      baseRadius.small,
+      PROFILE_THEME_DEFAULTS.radius.small
+    )
+  };
+  const buttonStyles = getThemePreviewButtonStyles(buttonPresetKey, colors);
+
+  previewCard.style.background = colors.backgroundAlt;
+  previewCard.style.borderColor = colors.primaryDark;
+  previewCard.style.borderRadius = radius.base;
+
+  previewTop.style.background = colors.background;
+  previewTop.style.borderColor = colors.primaryDark;
+  previewTop.style.borderRadius = radius.base;
+
+  previewSurface.style.background = colors.background;
+  previewSurface.style.borderColor = colors.primaryDark;
+  previewSurface.style.borderRadius = radius.base;
+
+  previewEyebrow.style.color = colors.primary;
+  previewEyebrow.style.fontFamily = fontPreset.body;
+  previewTitle.style.color = colors.text;
+  previewTitle.style.fontFamily = fontPreset.display;
+  previewBody.style.color = colors.text;
+  previewBody.style.fontFamily = fontPreset.body;
+  previewMuted.style.color = colors.textMuted;
+  previewMuted.style.fontFamily = fontPreset.body;
+
+  previewOutlineBtn.style.borderColor = colors.primary;
+  previewOutlineBtn.style.color = colors.primary;
+  previewOutlineBtn.style.border = buttonStyles.outlineBorder;
+  previewOutlineBtn.style.background = buttonStyles.outlineBackground;
+  previewOutlineBtn.style.borderRadius = buttonStyles.radius;
+  previewOutlineBtn.style.fontFamily = fontPreset.body;
+  previewOutlineBtn.style.boxShadow = "none";
+
+  previewPrimaryBtn.style.background = buttonStyles.primaryBackground;
+  previewPrimaryBtn.style.color = "#ffffff";
+  previewPrimaryBtn.style.border = buttonStyles.primaryBorder;
+  previewPrimaryBtn.style.borderRadius = buttonStyles.radius;
+  previewPrimaryBtn.style.fontFamily = fontPreset.body;
+  previewPrimaryBtn.style.boxShadow = buttonStyles.primaryShadow;
+
+  previewChip.style.background = colors.primaryLight;
+  previewChip.style.color = colors.text;
+  previewChip.style.borderColor = colors.primary;
+  previewChip.style.borderRadius = radius.small;
+  previewChip.style.fontFamily = fontPreset.body;
+  previewChip.textContent = `Hero: ${
+    PROFILE_THEME_HERO_LAYOUT_LABELS[heroLayoutPresetKey] || "Default"
+  }`;
+}
+
+function buildProfileThemePayload(currentHotelSlug) {
+  const baseTheme = currentHotelSlug ? getCurrentProfileThemeBase() : {};
+
+  const nextTheme = cloneThemeValue(baseTheme);
+  const colorValues = {
+    primary: getTrimmedInputValue("profileThemePrimaryInput"),
+    primaryLight: getTrimmedInputValue("profileThemePrimaryLightInput"),
+    primaryDark: getTrimmedInputValue("profileThemePrimaryDarkInput"),
+    background: getTrimmedInputValue("profileThemeBackgroundInput"),
+    backgroundAlt: getTrimmedInputValue("profileThemeBackgroundAltInput"),
+    text: getTrimmedInputValue("profileThemeTextInput"),
+    textMuted: getTrimmedInputValue("profileThemeTextMutedInput")
+  };
+  const radiusValues = {
+    base: getTrimmedInputValue("profileThemeRadiusBaseInput"),
+    small: getTrimmedInputValue("profileThemeRadiusSmallInput")
+  };
+  const loadingScreenValues = {
+    logoPrimaryText: getTrimmedInputValue("profileThemeLoadingLogoPrimaryInput"),
+    logoSecondaryText: getTrimmedInputValue("profileThemeLoadingLogoSecondaryInput"),
+    tagline: getTrimmedInputValue("profileThemeLoadingTaglineInput"),
+    backgroundColor: getTrimmedInputValue("profileThemeLoadingBackgroundColorInput"),
+    accentColor: getTrimmedInputValue("profileThemeLoadingAccentColorInput"),
+    textColor: getTrimmedInputValue("profileThemeLoadingTextColorInput")
+  };
+  const typographyPresetValue = getSelectedProfileThemeTypographyPreset();
+  const containerPresetValue = getSelectedProfileThemeContainerPreset();
+  const buttonPresetValue = getSelectedProfileThemeButtonPreset();
+  const heroLayoutPresetValue = getSelectedProfileThemeHeroLayoutPreset();
+  const showAbout = Boolean(document.getElementById("profileThemeShowAboutInput")?.checked);
+  const showEvents = Boolean(document.getElementById("profileThemeShowEventsInput")?.checked);
+  const showReservation = Boolean(
+    document.getElementById("profileThemeShowReservationInput")?.checked
+  );
+  const showGallery = Boolean(document.getElementById("profileThemeShowGalleryInput")?.checked);
+  const showTestimonials = Boolean(
+    document.getElementById("profileThemeShowTestimonialsInput")?.checked
+  );
+  const sectionOrder = getCurrentProfileThemeSectionOrder();
+
+  function applyManagedGroup(groupName, values) {
+    const currentGroup =
+      nextTheme[groupName] &&
+      typeof nextTheme[groupName] === "object" &&
+      !Array.isArray(nextTheme[groupName])
+        ? { ...nextTheme[groupName] }
+        : {};
+
+    Object.entries(values).forEach(([key, value]) => {
+      if (value) {
+        currentGroup[key] = value;
+        return;
+      }
+
+      delete currentGroup[key];
+    });
+
+    if (Object.keys(currentGroup).length) {
+      nextTheme[groupName] = currentGroup;
+      return;
+    }
+
+    delete nextTheme[groupName];
+  }
+
+  applyManagedGroup("colors", colorValues);
+  applyManagedGroup("radius", radiusValues);
+  applyManagedGroup("loadingScreen", loadingScreenValues);
+
+  const currentTypography =
+    nextTheme.typography &&
+    typeof nextTheme.typography === "object" &&
+    !Array.isArray(nextTheme.typography)
+      ? { ...nextTheme.typography }
+      : {};
+
+  if (typographyPresetValue) {
+    currentTypography.preset = typographyPresetValue;
+  }
+
+  if (Object.keys(currentTypography).length) {
+    nextTheme.typography = currentTypography;
+  } else {
+    delete nextTheme.typography;
+  }
+
+  const currentLayout =
+    nextTheme.layout &&
+    typeof nextTheme.layout === "object" &&
+    !Array.isArray(nextTheme.layout)
+      ? { ...nextTheme.layout }
+      : {};
+
+  if (containerPresetValue) {
+    currentLayout.containerPreset = containerPresetValue;
+  }
+
+  if (Object.keys(currentLayout).length) {
+    nextTheme.layout = currentLayout;
+  } else {
+    delete nextTheme.layout;
+  }
+
+  const currentButtons =
+    nextTheme.buttons &&
+    typeof nextTheme.buttons === "object" &&
+    !Array.isArray(nextTheme.buttons)
+      ? { ...nextTheme.buttons }
+      : {};
+
+  if (buttonPresetValue) {
+    currentButtons.preset = buttonPresetValue;
+  }
+
+  if (Object.keys(currentButtons).length) {
+    nextTheme.buttons = currentButtons;
+  } else {
+    delete nextTheme.buttons;
+  }
+
+  const currentHero =
+    nextTheme.hero && typeof nextTheme.hero === "object" && !Array.isArray(nextTheme.hero)
+      ? { ...nextTheme.hero }
+      : {};
+
+  if (heroLayoutPresetValue === "default") {
+    delete currentHero.layoutVariant;
+  } else if (heroLayoutPresetValue) {
+    currentHero.layoutVariant = heroLayoutPresetValue;
+  }
+
+  if (Object.keys(currentHero).length) {
+    nextTheme.hero = currentHero;
+  } else {
+    delete nextTheme.hero;
+  }
+
+  const currentSections =
+    nextTheme.sections &&
+    typeof nextTheme.sections === "object" &&
+    !Array.isArray(nextTheme.sections)
+      ? { ...nextTheme.sections }
+      : {};
+
+  if (typeof baseTheme.sections?.about === "boolean" || showAbout === false) {
+    currentSections.about = showAbout;
+  } else {
+    delete currentSections.about;
+  }
+
+  if (typeof baseTheme.sections?.events === "boolean" || showEvents === false) {
+    currentSections.events = showEvents;
+  } else {
+    delete currentSections.events;
+  }
+
+  if (
+    typeof baseTheme.sections?.reservation === "boolean" ||
+    showReservation === false
+  ) {
+    currentSections.reservation = showReservation;
+  } else {
+    delete currentSections.reservation;
+  }
+
+  if (typeof baseTheme.sections?.gallery === "boolean" || showGallery === false) {
+    currentSections.gallery = showGallery;
+  } else {
+    delete currentSections.gallery;
+  }
+
+  if (
+    typeof baseTheme.sections?.testimonials === "boolean" ||
+    showTestimonials === false
+  ) {
+    currentSections.testimonials = showTestimonials;
+  } else {
+    delete currentSections.testimonials;
+  }
+
+  if (state.profileThemeSectionOrderDirty) {
+    if (areThemeSectionOrdersEqual(sectionOrder, PROFILE_THEME_SECTION_ORDER)) {
+      delete currentSections.order;
+    } else {
+      currentSections.order = sectionOrder;
+    }
+  }
+
+  if (Object.keys(currentSections).length) {
+    nextTheme.sections = currentSections;
+  } else {
+    delete nextTheme.sections;
+  }
+
+  if (!Object.keys(nextTheme).length) {
+    return undefined;
+  }
+
+  const currentMeta =
+    nextTheme.meta &&
+    typeof nextTheme.meta === "object" &&
+    !Array.isArray(nextTheme.meta)
+      ? { ...nextTheme.meta }
+      : {};
+
+  currentMeta.version = THEME_FOUNDATION_VERSION;
+  nextTheme.meta = currentMeta;
+
+  return nextTheme;
+}
+
 function bindProfileForm() {
   const form = document.getElementById("profileForm");
+  const resetThemeBtn = document.getElementById("profileThemeResetBtn");
+  const sectionOrderList = document.getElementById("profileThemeSectionOrderList");
   if (!form) return;
+
+  function handleThemeFieldInteraction(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.id || !target.id.startsWith("profileTheme")) return;
+
+    if ("setCustomValidity" in target) {
+      target.setCustomValidity("");
+    }
+
+    updateProfileThemePreview();
+    syncProfileThemeSectionOrderStates();
+  }
+
+  form.addEventListener("input", handleThemeFieldInteraction);
+  form.addEventListener("change", handleThemeFieldInteraction);
+
+  if (resetThemeBtn && resetThemeBtn.dataset.boundClick !== "true") {
+    resetThemeBtn.addEventListener("click", () => {
+      fillProfileThemeFields(getCurrentProfileThemeBase());
+      updateProfileThemePreview();
+    });
+    resetThemeBtn.dataset.boundClick = "true";
+  }
+
+  if (sectionOrderList && sectionOrderList.dataset.boundClick !== "true") {
+    sectionOrderList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-move-theme-section]");
+      if (!(button instanceof HTMLButtonElement)) return;
+
+      moveProfileThemeSectionOrder(button);
+    });
+    sectionOrderList.dataset.boundClick = "true";
+  }
+
+  updateProfileThemePreview();
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     try {
+      if (!validateProfileThemeInputs(form)) {
+        return;
+      }
+
+      const hotelSlug = document.getElementById("profileHotelSlugInput")?.value.trim();
+      const currentHero = hotelSlug ? getCurrentProfileHeroBase() : {};
+      const nextHero =
+        currentHero && typeof currentHero === "object" && !Array.isArray(currentHero)
+          ? { ...currentHero }
+          : {};
+      const currentHeroScene =
+        currentHero.scene &&
+        typeof currentHero.scene === "object" &&
+        !Array.isArray(currentHero.scene)
+          ? { ...currentHero.scene }
+          : {};
+      const nextHeroScene = { ...currentHeroScene };
+      const heroScenePreset = getValidProfileHeroScenePreset(
+        document.getElementById("profileHeroScenePresetInput")?.value
+      );
+
+      nextHero.titleLine1 = document.getElementById("profileHeroLine1Input")?.value.trim();
+      nextHero.titleLine2 = document.getElementById("profileHeroLine2Input")?.value.trim();
+      nextHero.titleLine3 = document.getElementById("profileHeroLine3Input")?.value.trim();
+      nextHero.stats = parseJsonInput(document.getElementById("profileHeroStatsInput")?.value, []);
+      nextHeroScene.enabled = Boolean(
+        document.getElementById("profileHeroSceneEnabledInput")?.checked
+      );
+
+      if (heroScenePreset) {
+        nextHeroScene.preset = heroScenePreset;
+      } else {
+        delete nextHeroScene.preset;
+      }
+
+      [
+        {
+          inputId: "profileHeroSceneToneMappingExposureInput",
+          field: "toneMappingExposure",
+          label: "Hero scene tone mapping exposure"
+        },
+        {
+          inputId: "profileHeroSceneCameraDistanceInput",
+          field: "cameraDistance",
+          label: "Hero scene camera distance"
+        },
+        {
+          inputId: "profileHeroSceneAmbientLightIntensityInput",
+          field: "ambientLightIntensity",
+          label: "Hero scene ambient light intensity"
+        },
+        {
+          inputId: "profileHeroSceneGoldLightIntensityInput",
+          field: "goldLightIntensity",
+          label: "Hero scene gold light intensity"
+        },
+        {
+          inputId: "profileHeroSceneWarmLightIntensityInput",
+          field: "warmLightIntensity",
+          label: "Hero scene warm light intensity"
+        },
+        {
+          inputId: "profileHeroSceneRimLightIntensityInput",
+          field: "rimLightIntensity",
+          label: "Hero scene rim light intensity"
+        },
+        {
+          inputId: "profileHeroSceneParticleCountInput",
+          field: "particleCount",
+          label: "Hero scene particle count"
+        }
+      ].forEach(({ inputId, field, label }) => {
+        const nextValue = getOptionalNumberInputValue(inputId, label);
+
+        if (nextValue === null) {
+          delete nextHeroScene[field];
+          return;
+        }
+
+        nextHeroScene[field] = nextValue;
+      });
+
+      if (Object.keys(nextHeroScene).length) {
+        nextHero.scene = nextHeroScene;
+      } else {
+        delete nextHero.scene;
+      }
+
       const payload = {
-        hotelSlug: document.getElementById("profileHotelSlugInput")?.value.trim(),
+        hotelSlug,
         hotelName: document.getElementById("profileHotelNameInput")?.value.trim(),
         tagline: document.getElementById("profileTaglineInput")?.value.trim(),
         ownerWhatsAppNumber: document.getElementById("profileWhatsappInput")?.value.trim(),
@@ -963,17 +3553,25 @@ function bindProfileForm() {
           logoTextSecondary: document.getElementById("profileBrandSecondaryInput")?.value.trim()
         },
 
-        hero: {
-          titleLine1: document.getElementById("profileHeroLine1Input")?.value.trim(),
-          titleLine2: document.getElementById("profileHeroLine2Input")?.value.trim(),
-          titleLine3: document.getElementById("profileHeroLine3Input")?.value.trim(),
-          stats: parseJsonInput(document.getElementById("profileHeroStatsInput")?.value, [])
-        },
+        theme: buildProfileThemePayload(hotelSlug),
+        hero: nextHero,
 
         about: {
           eyebrow: document.getElementById("profileAboutEyebrowInput")?.value.trim(),
           title: document.getElementById("profileAboutTitleInput")?.value.trim(),
-          paragraphs: parseJsonInput(document.getElementById("profileAboutParagraphsInput")?.value, [])
+          paragraphs: parseJsonInput(document.getElementById("profileAboutParagraphsInput")?.value, []),
+          primaryImageUrl: document
+            .getElementById("profileAboutPrimaryImageUrlInput")
+            ?.value.trim(),
+          primaryImageAlt: document
+            .getElementById("profileAboutPrimaryImageAltInput")
+            ?.value.trim(),
+          secondaryImageUrl: document
+            .getElementById("profileAboutSecondaryImageUrlInput")
+            ?.value.trim(),
+          secondaryImageAlt: document
+            .getElementById("profileAboutSecondaryImageAltInput")
+            ?.value.trim()
         },
 
         features: parseJsonInput(document.getElementById("profileFeaturesInput")?.value, []),
@@ -1025,6 +3623,12 @@ function bindProfileForm() {
       }
 
       await saveHotelProfile(payload);
+      state.profileHeroBase = cloneThemeValue(payload.hero || {});
+      state.profileHeroHotelSlug = payload.hotelSlug || "";
+      state.profileThemeBase = cloneThemeValue(payload.theme || {});
+      state.profileThemeHotelSlug = payload.hotelSlug || "";
+      fillProfileThemeFields(state.profileThemeBase);
+      updateProfileThemePreview();
       alert("Hotel profile saved successfully.");
     } catch (error) {
       console.error("Profile form submit failed:", error);
@@ -1038,6 +3642,20 @@ function fillProfileForm(profile) {
 
   document.getElementById("profileFormSection").style.display = "block";
 
+  const theme =
+    profile.theme && typeof profile.theme === "object" && !Array.isArray(profile.theme)
+      ? cloneThemeValue(profile.theme)
+      : {};
+  const hero =
+    profile.hero && typeof profile.hero === "object" && !Array.isArray(profile.hero)
+      ? cloneThemeValue(profile.hero)
+      : {};
+
+  state.profileHeroBase = hero;
+  state.profileHeroHotelSlug = profile.hotel_slug || "";
+  state.profileThemeBase = theme;
+  state.profileThemeHotelSlug = profile.hotel_slug || "";
+
   document.getElementById("profileHotelSlugInput").value = profile.hotel_slug || "";
   document.getElementById("profileHotelNameInput").value = profile.hotel_name || "";
   document.getElementById("profileTaglineInput").value = profile.tagline || "";
@@ -1047,15 +3665,43 @@ function fillProfileForm(profile) {
 
   document.getElementById("profileBrandPrimaryInput").value = profile.branding?.logoTextPrimary || "";
   document.getElementById("profileBrandSecondaryInput").value = profile.branding?.logoTextSecondary || "";
+  fillProfileThemeFields(theme);
+  updateProfileThemePreview();
 
-  document.getElementById("profileHeroLine1Input").value = profile.hero?.titleLine1 || "";
-  document.getElementById("profileHeroLine2Input").value = profile.hero?.titleLine2 || "";
-  document.getElementById("profileHeroLine3Input").value = profile.hero?.titleLine3 || "";
-  document.getElementById("profileHeroStatsInput").value = formatJson(profile.hero?.stats || []);
+  document.getElementById("profileHeroLine1Input").value = hero.titleLine1 || "";
+  document.getElementById("profileHeroLine2Input").value = hero.titleLine2 || "";
+  document.getElementById("profileHeroLine3Input").value = hero.titleLine3 || "";
+  document.getElementById("profileHeroStatsInput").value = formatJson(hero.stats || []);
+  document.getElementById("profileHeroSceneEnabledInput").checked =
+    hero.scene?.enabled !== false;
+  document.getElementById("profileHeroScenePresetInput").value =
+    getValidProfileHeroScenePreset(hero.scene?.preset);
+  document.getElementById("profileHeroSceneToneMappingExposureInput").value =
+    hero.scene?.toneMappingExposure ?? "";
+  document.getElementById("profileHeroSceneCameraDistanceInput").value =
+    hero.scene?.cameraDistance ?? "";
+  document.getElementById("profileHeroSceneAmbientLightIntensityInput").value =
+    hero.scene?.ambientLightIntensity ?? "";
+  document.getElementById("profileHeroSceneGoldLightIntensityInput").value =
+    hero.scene?.goldLightIntensity ?? "";
+  document.getElementById("profileHeroSceneWarmLightIntensityInput").value =
+    hero.scene?.warmLightIntensity ?? "";
+  document.getElementById("profileHeroSceneRimLightIntensityInput").value =
+    hero.scene?.rimLightIntensity ?? "";
+  document.getElementById("profileHeroSceneParticleCountInput").value =
+    hero.scene?.particleCount ?? "";
 
   document.getElementById("profileAboutEyebrowInput").value = profile.about?.eyebrow || "";
   document.getElementById("profileAboutTitleInput").value = profile.about?.title || "";
   document.getElementById("profileAboutParagraphsInput").value = formatJson(profile.about?.paragraphs || []);
+  document.getElementById("profileAboutPrimaryImageUrlInput").value =
+    profile.about?.primaryImageUrl || "";
+  document.getElementById("profileAboutPrimaryImageAltInput").value =
+    profile.about?.primaryImageAlt || "";
+  document.getElementById("profileAboutSecondaryImageUrlInput").value =
+    profile.about?.secondaryImageUrl || "";
+  document.getElementById("profileAboutSecondaryImageAltInput").value =
+    profile.about?.secondaryImageAlt || "";
 
   document.getElementById("profileFeaturesInput").value = formatJson(profile.features || []);
 
@@ -1215,6 +3861,8 @@ function bindUploadForm() {
       document.getElementById("uploadFolderInput")?.value.trim() || "misc";
     const targetFieldId =
       document.getElementById("uploadTargetFieldInput")?.value.trim() || "";
+    const storageTargetFieldId =
+      document.getElementById("uploadStorageTargetFieldInput")?.value.trim() || "";
     const fileInput = document.getElementById("uploadFileInput");
     const resultWrap = document.getElementById("uploadResult");
     const file = fileInput?.files?.[0];
@@ -1236,6 +3884,7 @@ function bindUploadForm() {
       });
 
       const publicUrl = result.file?.publicUrl || "";
+      const storagePath = result.file?.path || "";
 
       if (targetFieldId) {
         const targetInput = document.getElementById(targetFieldId);
@@ -1244,11 +3893,19 @@ function bindUploadForm() {
         }
       }
 
+      if (storageTargetFieldId) {
+        const storageTargetInput = document.getElementById(storageTargetFieldId);
+        if (storageTargetInput) {
+          storageTargetInput.value = storagePath;
+        }
+      }
+
       if (resultWrap) {
         resultWrap.innerHTML = `
           <div class="admin-card" style="margin-top: 12px;">
             <p><strong>Uploaded successfully</strong></p>
             <p><strong>URL:</strong> <a href="${escapeHTML(publicUrl)}" target="_blank" rel="noopener noreferrer">${escapeHTML(publicUrl)}</a></p>
+            <p><strong>Storage Path:</strong> ${escapeHTML(storagePath)}</p>
             <img src="${escapeHTML(publicUrl)}" alt="Uploaded preview" style="max-width: 240px; border-radius: 8px; margin-top: 10px;" />
           </div>
         `;
@@ -1274,14 +3931,111 @@ async function toggleMenuArchive(id, isArchived) {
   });
 }
 
+async function resendNotificationEvent(id) {
+  return fetchJson(`${API_BASE}/notification-events/${id}/resend`, {
+    method: "POST"
+  });
+}
+
+function bindNotificationSettingsForm() {
+  const form = document.getElementById("notificationSettingsForm");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    try {
+      const payload = {
+        hotelSlug:
+          document.getElementById("notificationSettingsHotelSlugInput")?.value.trim() ||
+          "",
+        ownerEmail:
+          document.getElementById("notificationOwnerEmailInput")?.value.trim() || "",
+        emailEnabled:
+          !!document.getElementById("notificationEmailEnabledInput")?.checked,
+        notifyOnNewOrder:
+          !!document.getElementById("notificationNotifyOrderInput")?.checked,
+        notifyOnNewReservation:
+          !!document.getElementById("notificationNotifyReservationInput")?.checked,
+        notifyOnNewInquiry:
+          !!document.getElementById("notificationNotifyInquiryInput")?.checked
+      };
+
+      if (!payload.hotelSlug) {
+        alert("Hotel slug is required.");
+        return;
+      }
+
+      const result = await saveNotificationSettings(payload);
+      fillNotificationSettingsForm(result.settings || payload);
+      alert("Notification settings saved successfully.");
+    } catch (error) {
+      console.error("Notification settings save failed:", error);
+      alert(error.message || "Failed to save notification settings");
+    }
+  });
+}
+
+async function toggleGalleryArchive(id, isArchived) {
+  return fetchJson(`${API_BASE}/gallery-items/${id}/archive`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ isArchived })
+  });
+}
+
 async function deleteMenuItem(id) {
   return fetchJson(`${API_BASE}/menu-items/${id}`, {
     method: "DELETE"
   });
 }
 
+async function deleteGalleryItem(id) {
+  return fetchJson(`${API_BASE}/gallery-items/${id}`, {
+    method: "DELETE"
+  });
+}
+
+async function deleteTestimonial(id) {
+  return fetchJson(`${API_BASE}/testimonials/${id}`, {
+    method: "DELETE"
+  });
+}
+
+async function toggleTestimonialApproval(id, isApproved) {
+  return fetchJson(`${API_BASE}/testimonials/${id}/approval`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ isApproved })
+  });
+}
+
+async function toggleTestimonialArchive(id, isArchived) {
+  return fetchJson(`${API_BASE}/testimonials/${id}/archive`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ isArchived })
+  });
+}
+
 async function toggleHotelActive(id, isActive) {
   return fetchJson(`${API_BASE}/hotels/${id}/active`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ isActive })
+  });
+}
+
+async function toggleGalleryActive(id, isActive) {
+  return fetchJson(`${API_BASE}/gallery-items/${id}/active`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json"
@@ -1330,16 +4084,27 @@ async function initAdmin() {
   try {
     bindTabs();
     bindHotelFilter();
+    bindListFilters();
     bindStatusActions();
     bindFormToggles();
+    bindQrTableLinkHelper();
+    bindGalleryUploadHelper();
+    bindProfileAboutImageUploadHelpers();
     bindHotelForm();
     bindMenuItemForm();
+    bindGalleryItemForm();
+    bindTestimonialForm();
+    bindNotificationSettingsForm();
     bindEditActions();
     bindProfileForm();
     bindUploadForm();
     bindUploadedFileDelete();
     syncMenuFormHotelSlug();
-     bindAdminLoginForm();
+    syncGalleryFormHotelSlug();
+    syncTestimonialFormHotelSlug();
+    syncNotificationSettingsHotelSlug();
+    syncQrTableLinkHotelSlug();
+    bindAdminLoginForm();
     bindAdminLogout();
 
     const hasSession = await checkExistingAdminSession();

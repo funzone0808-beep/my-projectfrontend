@@ -20,7 +20,7 @@
   <nav class="navbar scrolled" id="navbar" role="navigation" aria-label="Main navigation">
     <div class="nav-container">
       <a href="index.html#hero" class="nav-logo" aria-label="HSR home">
-        <span class="logo-a">Hotel</span><span class="logo-urum"> Sai Raj</span>
+        <span class="logo-a">Hotel</span><span class="logo-urum"></span>
       </a>
       <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
         <span></span><span></span><span></span>
@@ -128,11 +128,60 @@
       <div class="form-group"><label for="orderNote">Special Note</label><textarea id="orderNote" rows="3" placeholder="Less spicy, no onion, etc."></textarea></div>
       <div class="payment-box glass-card">
         <p class="payment-title">Select Payment Method:</p>
-        <label class="payment-option"><input type="radio" name="paymentMethod" value="COD" checked /><span>1️⃣ COD</span></label>
-        <label class="payment-option"><input type="radio" name="paymentMethod" value="UPI" /><span>2️⃣ UPI</span></label>
+
+        <label class="payment-option">
+          <input type="radio" name="paymentMethod" value="COD" checked />
+          <span>1️⃣ COD</span>
+        </label>
+
+        <label class="payment-option">
+          <input type="radio" name="paymentMethod" value="UPI" />
+          <span>2️⃣ Google Pay / UPI</span>
+        </label>
+
         <div id="upiBox" class="upi-box" hidden>
-          <p class="upi-line">UPI ID: <strong id="orderUpiId">hotelsairaj@upi</strong></p>
-          <label class="payment-option payment-confirm"><input type="checkbox" id="orderPaymentConfirmed" /><span>I have completed the UPI payment</span></label>
+          <div class="upi-offer-card glass-card">
+            <p class="upi-offer-badge">🎉 Pay with Google Pay and get 10% off</p>
+            <p class="upi-offer-note">Discount is applied only for Google Pay / UPI payments.</p>
+
+            <div class="upi-summary">
+              <div class="cart-total-row">
+                <span>Original Total</span>
+                <strong id="upiOriginalTotal">₹0</strong>
+              </div>
+              <div class="cart-total-row">
+                <span>Google Pay Discount (10%)</span>
+                <strong id="upiDiscountAmount">-₹0</strong>
+              </div>
+              <div class="cart-total-row grand">
+                <span>Final Payable</span>
+                <strong id="upiFinalAmount">₹0</strong>
+              </div>
+            </div>
+
+            <button type="button" id="payWithGpayBtn" class="btn btn-gold btn-full">
+              <span>Pay with Google Pay</span>
+              <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+            </button>
+
+            <p class="upi-support-note">
+              Direct Google Pay opening works best on supported mobile devices with a UPI app installed.
+            </p>
+
+            <div id="upiFallbackBox" class="upi-fallback-box" hidden>
+              <p class="upi-line">
+                UPI Link:
+                <a id="upiFallbackLink" href="#" target="_blank" rel="noopener noreferrer">Open payment manually</a>
+              </p>
+              <p class="upi-line">UPI ID: <strong id="orderUpiId">hotelsairaj@upi</strong></p>
+              <p class="upi-line">Amount: <strong id="upiManualAmount">₹0</strong></p>
+            </div>
+
+            <label class="payment-option payment-confirm">
+              <input type="checkbox" id="orderPaymentConfirmed" />
+              <span>I have completed the Google Pay / UPI payment</span>
+            </label>
+          </div>
         </div>
       </div>
       <button type="submit" class="btn btn-gold btn-full"><span>Place Order on WhatsApp</span><i class="fab fa-whatsapp" aria-hidden="true"></i></button>
