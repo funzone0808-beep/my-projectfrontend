@@ -65,6 +65,21 @@ body {
   overflow-x: hidden;
   cursor: none;
 }
+
+body.app-booting {
+  overflow: hidden;
+}
+
+body.app-booting #pageShell {
+  opacity: 0;
+  visibility: hidden;
+}
+
+body.app-ready #pageShell {
+  opacity: 1;
+  visibility: visible;
+}
+
 img {
   display: block;
   width: 100%;

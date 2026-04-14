@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HSR — Fine Dining Experience</title>
+  <title>Fine Dining Experience</title>
   <meta name="description" content="sai raj is a premium fine dining restaurant offering an immersive culinary journey with the finest ingredients, world-class chefs, and an unforgettable atmosphere." />
   <meta name="keywords" content="fine dining, luxury restaurant, gourmet food, reservation, private events" />
   <meta property="og:title" content="HRS — Fine Dining Experience" />
@@ -27,7 +27,7 @@
 
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body class="app-booting">
 
   <!-- ─── CUSTOM CURSOR ─────────────────────────────────── -->
   <div class="cursor-dot" id="cursorDot"></div>
@@ -37,12 +37,14 @@
   <div id="loader" class="loader" role="status" aria-label="Loading">
     <div class="loader-inner">
       <div class="loader-logo">
-        <span class="loader-a"></span><span class="loader-urum"></span>
+        <span class="loader-a">H</span><span class="loader-urum">SR</span>
       </div>
       <div class="loader-bar-wrap"><div class="loader-bar" id="loaderBar"></div></div>
       <p class="loader-tagline">Preparing your experience…</p>
     </div>
   </div>
+
+  <div id="pageShell">
 
   <!-- ─── SCROLL PROGRESS ──────────────────────────────── -->
   <div class="scroll-progress" id="scrollProgress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
@@ -51,7 +53,7 @@
   <nav class="navbar" id="navbar" role="navigation" aria-label="Main navigation">
     <div class="nav-container">
      <a href="#hero" class="nav-logo" aria-label="Hotel home">
-      <span class="logo-a" id="brandPrimary">Hotel</span><span class="logo-urum" id="brandSecondary"> Sai Raj</span>
+      <span class="logo-a" id="brandPrimary"></span><span class="logo-urum" id="brandSecondary"></span>
      </a>
       <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
         <span></span><span></span><span></span>
@@ -104,7 +106,7 @@
       <div class="about-grid">
         <div class="about-images">
           <div class="about-img-main reveal-img">
-            <img src="img/hotelfrontimg3.png" alt="Elegant restaurant interior with candlelight" loading="lazy" />
+            <img src="img/about.jpg" alt="Elegant restaurant interior with candlelight" loading="lazy" />
           </div>
           <div class="about-img-sub reveal-img">
             <img src="https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=400&q=80" alt="Chef preparing gourmet dish" loading="lazy" />
@@ -284,7 +286,7 @@
           UPI Link:
           <a id="upiFallbackLink" href="#" target="_blank" rel="noopener noreferrer">Open payment manually</a>
         </p>
-        <p class="upi-line">UPI ID: <strong id="orderUpiId">hotelsairaj@upi</strong></p>
+        <p class="upi-line">UPI ID: <strong id="orderUpiId"></strong></p>
         <p class="upi-line">Amount: <strong id="upiManualAmount">₹0</strong></p>
       </div>
 
@@ -553,10 +555,10 @@
           <img src="img/1.png" alt="Exquisite plated dish" loading="lazy" />
           <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
         </div>
-        <div class="gallery-item" role="listitem">
+        <!-- <div class="gallery-item" role="listitem">
           <img src="img/2.png" alt="Restaurant ambiance" loading="lazy" />
           <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
-        </div>
+        </div> -->
         <div class="gallery-item" role="listitem">
           <img src="img/3.png" alt="Gourmet cocktail" loading="lazy" />
           <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
@@ -565,14 +567,14 @@
           <img src="img/4.png" alt="Chef cooking in open kitchen" loading="lazy" />
           <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
         </div>
-        <div class="gallery-item" role="listitem">
+        <!-- <div class="gallery-item" role="listitem">
           <img src="img/5.png" alt="Colorful gourmet salad" loading="lazy" />
           <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
-        </div>
-        <div class="gallery-item" role="listitem">
+        </div> -->
+        <!-- <div class="gallery-item" role="listitem">
           <img src="img/6.png" alt="Artisan pancakes" loading="lazy" />
           <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
-        </div>
+        </div> -->
         <div class="gallery-item gallery-item--wide" role="listitem">
           <img src="img/8.png" alt="Fine dining table setting" loading="lazy" />
           <div class="gallery-overlay"><i class="fas fa-expand" aria-hidden="true"></i></div>
@@ -786,7 +788,7 @@
 </div>
 <div class="wa-popup" id="waPopup">
   <div class="wa-box glass-card">
-    <h3>Welcome To Hotel Sai Raj</h3>
+    <h3>Welcome</h3>
     <p>Choose what you want to do:</p>
 
     <a href="#events" class="btn btn-primary btn-full wa-action-link">
@@ -902,6 +904,8 @@
     </div>
   </div>
 </footer>
+
+  </div>
 
   <!-- <script src="js/data.js"></script> -->
   <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="js/three-scene.js" defer></script>

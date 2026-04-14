@@ -1762,25 +1762,33 @@ function bindCartDelegation() {
   if (!loader || !bar) return;
 
   let progress = 0;
+  let finished = false;
+
+  const finishLoader = () => {
+    if (finished) return;
+    finished = true;
+    clearInterval(interval);
+    bar.style.width = "100%";
+
+    setTimeout(() => {
+      loader.classList.add("hidden");
+      document.body.style.overflow = "";
+      document
+        .querySelectorAll("[data-anim]")
+        .forEach((el) => el.classList.add("anim-ready"));
+    }, 180);
+  };
+
   const interval = setInterval(() => {
+    const maxProgress = document.body.classList.contains("app-ready") ? 100 : 92;
     progress += Math.random() * 18;
-    if (progress >= 100) {
-      progress = 100;
-      clearInterval(interval);
-    }
+    if (progress >= maxProgress) progress = maxProgress;
     bar.style.width = progress + "%";
 
-    if (progress === 100) {
-      setTimeout(() => {
-        loader.classList.add("hidden");
-        document.body.style.overflow = "";
-        document
-          .querySelectorAll("[data-anim]")
-          .forEach((el) => el.classList.add("anim-ready"));
-      }, 600);
-    }
+    if (progress === 100) finishLoader();
   }, 100);
 
+  document.addEventListener("app:ready", finishLoader, { once: true });
   document.body.style.overflow = "hidden";
 })();
 
@@ -3638,6 +3646,12 @@ function updateHotelAwareLinks(hotelSlug = getActiveHotelSlug()) {
     });
 }
 
+function markAppReady() {
+  document.body.classList.remove("app-booting");
+  document.body.classList.add("app-ready");
+  document.dispatchEvent(new Event("app:ready"));
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     const queryHotelSlug =
@@ -3659,8 +3673,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     bindEventInquiryForm();
     bindTestimonialReviewForm();
     initMenuAndCart();
+
+    markAppReady();
     console.log("App data loaded successfully", window.APP_STATE);
   } catch (error) {
     console.error("App bootstrap failed:", error);
+    markAppReady();
   }
 });

@@ -14,9 +14,22 @@
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/menu-page.css" />
 </head>
-<body class="menu-page">
+<body class="menu-page app-booting">
   <div class="cursor-dot" id="cursorDot"></div>
   <div class="cursor-ring" id="cursorRing"></div>
+
+  <div id="loader" class="loader" role="status" aria-label="Loading">
+    <div class="loader-inner">
+      <div class="loader-logo">
+        <span class="loader-a">H</span><span class="loader-urum">SR</span>
+      </div>
+      <div class="loader-bar-wrap"><div class="loader-bar" id="loaderBar"></div></div>
+      <p class="loader-tagline">Preparing your experience…</p>
+    </div>
+  </div>
+
+  <div id="pageShell">
+
   <nav class="navbar scrolled" id="navbar" role="navigation" aria-label="Main navigation">
     <div class="nav-container">
       <a href="index.html#hero" class="nav-logo" aria-label="HSR home">
@@ -173,7 +186,7 @@
                 UPI Link:
                 <a id="upiFallbackLink" href="#" target="_blank" rel="noopener noreferrer">Open payment manually</a>
               </p>
-              <p class="upi-line">UPI ID: <strong id="orderUpiId">hotelsairaj@upi</strong></p>
+              <p class="upi-line">UPI ID: <strong id="orderUpiId"></strong></p>
               <p class="upi-line">Amount: <strong id="upiManualAmount">₹0</strong></p>
             </div>
 
@@ -199,6 +212,8 @@
       <!-- <p>Please enable popups and try again. You can also open WhatsApp manually using the button below.</p>
       <a id="waFallbackLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-full"><span>Open WhatsApp Manually</span></a> -->
     </div>
+  </div>
+
   </div>
 
   <!-- <script src="js/data.js"></script> -->

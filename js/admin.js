@@ -1525,14 +1525,21 @@ function renderHotelFilter() {
   syncMenuFormHotelSlug({ force: true });
 }
 
-function buildOrderContextRows(order = {}) {
+function getOrderContextValues(order = {}) {
   const orderContext =
     order.orderContext && typeof order.orderContext === "object" && !Array.isArray(order.orderContext)
       ? order.orderContext
       : {};
-  const orderType = order.order_type || orderContext.orderType || "";
-  const tableNumber = order.table_number || orderContext.tableNumber || "";
-  const orderSource = order.order_source || orderContext.orderSource || "";
+
+  return {
+    orderType: order.order_type || orderContext.orderType || "",
+    tableNumber: order.table_number || orderContext.tableNumber || "",
+    orderSource: order.order_source || orderContext.orderSource || ""
+  };
+}
+
+function buildOrderContextRows(order = {}) {
+  const { orderType, tableNumber, orderSource } = getOrderContextValues(order);
   const rows = [];
 
   if (orderType) {
@@ -1558,22 +1565,25 @@ function buildOrderContextRows(order = {}) {
 
 function buildOrderBillingRows(order = {}) {
   const rows = [];
+  const showBillingDefaults = isDineInOrderCard(order);
+  const paymentStatus = getOrderPaymentStatus(order, showBillingDefaults);
+  const billingStatus = getOrderBillingStatus(order, showBillingDefaults);
 
-  if (order.payment_status) {
+  if (paymentStatus) {
     rows.push(
-      `<div class="admin-row"><strong>Payment Status:</strong> ${escapeHTML(order.payment_status)}</div>`
+      `<div class="admin-row"><strong>Payment Status:</strong> ${escapeHTML(getPaymentStatusLabel(paymentStatus))}</div>`
     );
   }
 
-  if (order.billing_status) {
+  if (billingStatus) {
     rows.push(
-      `<div class="admin-row"><strong>Billing Status:</strong> ${escapeHTML(order.billing_status)}</div>`
+      `<div class="admin-row"><strong>Billing Status:</strong> ${escapeHTML(billingStatus)}</div>`
     );
   }
 
   if (order.bill_number) {
     rows.push(
-      `<div class="admin-row"><strong>Bill Number:</strong> ${escapeHTML(order.bill_number)}</div>`
+      `<div class="admin-row"><strong>${escapeHTML(getOrderBillNumberLabel(order))}:</strong> ${escapeHTML(order.bill_number)}</div>`
     );
   }
 
@@ -1590,6 +1600,399 @@ function buildOrderBillingRows(order = {}) {
   }
 
   return rows.join("");
+}
+
+function isDineInOrderCard(order = {}) {
+  const { orderType, tableNumber } = getOrderContextValues(order);
+  const normalizedOrderType = String(orderType || "")
+    .trim()
+    .toLowerCase();
+  const normalizedTableNumber = String(tableNumber || "").trim();
+
+  return (
+    normalizedOrderType === "dine-in" ||
+    !!normalizedTableNumber ||
+    !!order.payment_status ||
+    !!order.billing_status
+  );
+}
+
+function getOrderPaymentStatus(order = {}, useDefault = isDineInOrderCard(order)) {
+  return order.payment_status || (useDefault ? "unpaid" : "");
+}
+
+function getPaymentStatusLabel(paymentStatus = "") {
+  const normalizedStatus = String(paymentStatus || "").trim().toLowerCase();
+  const labels = {
+    unpaid: "unpaid",
+    customer_confirmed: "customer confirmed, verify before paid",
+    paid: "paid",
+    refunded: "refunded"
+  };
+
+  return labels[normalizedStatus] || normalizedStatus.replace(/_/g, " ");
+}
+
+function getOrderBillingStatus(order = {}, useDefault = isDineInOrderCard(order)) {
+  return order.billing_status || (useDefault ? "not_billed" : "");
+}
+
+function getOrderBillingAttentionMessage(order = {}) {
+  if (!isDineInOrderCard(order)) {
+    return "";
+  }
+
+  const paymentStatus = getOrderPaymentStatus(order, true);
+  const billingStatus = getOrderBillingStatus(order, true);
+
+  if (paymentStatus === "customer_confirmed") {
+    return "Verify UPI receipt before marking paid.";
+  }
+
+  if (billingStatus === "billed" && paymentStatus !== "paid") {
+    return "Bill is ready, payment is not marked paid.";
+  }
+
+  if (paymentStatus === "paid" && billingStatus !== "billed") {
+    return "Payment is marked paid, but billing is not marked billed.";
+  }
+
+  return "";
+}
+
+function buildOrderBillingAttentionRow(order = {}) {
+  const message = getOrderBillingAttentionMessage(order);
+
+  if (!message) {
+    return "";
+  }
+
+  return `<div class="admin-row admin-attention-row"><strong>Payment Attention:</strong> ${escapeHTML(message)}</div>`;
+}
+
+function getOrderBillNumberLabel(order = {}) {
+  return getOrderBillingStatus(order, true) === "billed"
+    ? "Bill Number"
+    : "Saved Bill Ref";
+}
+
+function getOrderBillPrintTitle(order = {}) {
+  if (order.bill_number && getOrderBillingStatus(order, true) === "billed") {
+    return order.bill_number;
+  }
+
+  return `Draft Bill - Order ${order.id || ""}`;
+}
+
+function getNumberValue(value) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function formatBillMoney(value) {
+  const numberValue = getNumberValue(value);
+  return numberValue === null ? "Rs. 0.00" : `Rs. ${numberValue.toFixed(2)}`;
+}
+
+function getOrderBillItems(order = {}) {
+  return Array.isArray(order.items) ? order.items : [];
+}
+
+function getOrderBillItemLineTotal(item = {}) {
+  const qty = getNumberValue(item.qty) || 0;
+  const price = getNumberValue(item.price) || 0;
+  return qty * price;
+}
+
+function getOrderBillItemSubtotal(order = {}) {
+  return getOrderBillItems(order).reduce(
+    (sum, item) => sum + getOrderBillItemLineTotal(item),
+    0
+  );
+}
+
+function getOrderBillTotals(order = {}) {
+  return order.totals && typeof order.totals === "object" && !Array.isArray(order.totals)
+    ? order.totals
+    : {};
+}
+
+function isUpiOrder(order = {}) {
+  const paymentMethod = String(order.payment_method || "").trim().toLowerCase();
+  return paymentMethod.includes("upi") || paymentMethod.includes("google pay");
+}
+
+function getOrderBillFinalTotal(order = {}) {
+  const totals = getOrderBillTotals(order);
+  const itemSubtotal = getOrderBillItemSubtotal(order);
+
+  if (isUpiOrder(order)) {
+    return (
+      getNumberValue(totals.gpayFinalTotal) ??
+      getNumberValue(totals.total) ??
+      getNumberValue(totals.normalTotal) ??
+      itemSubtotal
+    );
+  }
+
+  return (
+    getNumberValue(totals.total) ??
+    getNumberValue(totals.normalTotal) ??
+    getNumberValue(totals.gpayFinalTotal) ??
+    itemSubtotal
+  );
+}
+
+function buildOrderBillTotalsRows(order = {}) {
+  const totals = getOrderBillTotals(order);
+  const rows = [];
+  const subtotal = getNumberValue(totals.subtotal);
+  const gst = getNumberValue(totals.gst);
+  const normalTotal = getNumberValue(totals.normalTotal);
+  const gpayDiscount = getNumberValue(totals.gpayDiscount);
+  const gpayFinalTotal = getNumberValue(totals.gpayFinalTotal);
+
+  if (subtotal !== null) {
+    rows.push(`<tr><th>Subtotal</th><td>${escapeHTML(formatBillMoney(subtotal))}</td></tr>`);
+  }
+
+  if (gst !== null) {
+    rows.push(`<tr><th>GST</th><td>${escapeHTML(formatBillMoney(gst))}</td></tr>`);
+  }
+
+  if (isUpiOrder(order) && normalTotal !== null) {
+    rows.push(`<tr><th>Original Total</th><td>${escapeHTML(formatBillMoney(normalTotal))}</td></tr>`);
+  }
+
+  if (isUpiOrder(order) && gpayDiscount !== null) {
+    rows.push(`<tr><th>Google Pay Discount</th><td>-${escapeHTML(formatBillMoney(gpayDiscount))}</td></tr>`);
+  }
+
+  if (isUpiOrder(order) && gpayFinalTotal !== null) {
+    rows.push(`<tr><th>Final Paid Amount</th><td>${escapeHTML(formatBillMoney(gpayFinalTotal))}</td></tr>`);
+  } else {
+    rows.push(`<tr><th>Total</th><td>${escapeHTML(formatBillMoney(getOrderBillFinalTotal(order)))}</td></tr>`);
+  }
+
+  return rows.join("");
+}
+
+function buildOrderBillPrintDocument(order = {}) {
+  const { orderType, tableNumber, orderSource } = getOrderContextValues(order);
+  const billTitle = getOrderBillPrintTitle(order);
+  const savedBillRefRow = order.bill_number
+    ? `<p>${escapeHTML(getOrderBillNumberLabel(order))}: ${escapeHTML(order.bill_number)}</p>`
+    : "";
+  const items = getOrderBillItems(order);
+
+  const itemRows = items.length
+    ? items
+        .map((item, index) => {
+          const qty = getNumberValue(item.qty) || 0;
+          const price = getNumberValue(item.price) || 0;
+          const lineTotal = getOrderBillItemLineTotal(item);
+
+          return `
+            <tr>
+              <td>${escapeHTML(index + 1)}</td>
+              <td>${escapeHTML(item.name || item.id || "Item")}</td>
+              <td>${escapeHTML(qty)}</td>
+              <td>${escapeHTML(formatBillMoney(price))}</td>
+              <td>${escapeHTML(formatBillMoney(lineTotal))}</td>
+            </tr>
+          `;
+        })
+        .join("")
+    : `<tr><td colspan="5">No items found for this order.</td></tr>`;
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHTML(billTitle)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #111; margin: 24px; }
+    .bill { max-width: 760px; margin: 0 auto; }
+    .bill-header { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 18px; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 24px; }
+    h2 { font-size: 16px; margin-top: 4px; font-weight: 600; }
+    .muted { color: #555; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin: 18px 0; }
+    .row { font-size: 14px; line-height: 1.5; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 14px; }
+    th { background: #f2f2f2; }
+    .totals { max-width: 340px; margin-left: auto; }
+    .note { margin-top: 18px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 14px; }
+    .actions { display: flex; justify-content: flex-end; margin-bottom: 18px; }
+    button { border: 0; border-radius: 8px; background: #111; color: #fff; padding: 10px 14px; cursor: pointer; }
+    @media print {
+      body { margin: 0; }
+      .actions { display: none; }
+      .bill { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bill">
+    <div class="actions">
+      <button type="button" onclick="window.print()">Print Bill</button>
+    </div>
+    <header class="bill-header">
+      <div>
+        <h1>${escapeHTML(order.hotel_name || "Hotel")}</h1>
+        <h2>${escapeHTML(billTitle)}</h2>
+      </div>
+      <div class="muted">
+        <p>Order: ${escapeHTML(order.id || "")}</p>
+        ${savedBillRefRow}
+        <p>Created: ${escapeHTML(order.created_at || "")}</p>
+        <p>Billed: ${escapeHTML(order.billed_at || "Not billed yet")}</p>
+      </div>
+    </header>
+
+    <section class="grid">
+      <div class="row"><strong>Customer:</strong> ${escapeHTML(order.customer_name || "")}</div>
+      <div class="row"><strong>Phone:</strong> ${escapeHTML(order.customer_phone || "")}</div>
+      <div class="row"><strong>Order Type:</strong> ${escapeHTML(orderType || "dine-in")}</div>
+      <div class="row"><strong>Table:</strong> ${escapeHTML(tableNumber || "Not provided")}</div>
+      <div class="row"><strong>Source:</strong> ${escapeHTML(orderSource || "")}</div>
+      <div class="row"><strong>Payment:</strong> ${escapeHTML(order.payment_method || "")}</div>
+      <div class="row"><strong>Payment Status:</strong> ${escapeHTML(getPaymentStatusLabel(getOrderPaymentStatus(order, true)))}</div>
+      <div class="row"><strong>Billing Status:</strong> ${escapeHTML(getOrderBillingStatus(order, true))}</div>
+    </section>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Item</th>
+          <th>Qty</th>
+          <th>Rate</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+
+    <table class="totals">
+      <tbody>${buildOrderBillTotalsRows(order)}</tbody>
+    </table>
+
+    <div class="note">
+      <strong>Note:</strong> ${escapeHTML(order.note || "No note")}
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function openOrderBillPrintView(order = {}) {
+  const printWindow = window.open("", "_blank", "width=780,height=900");
+
+  if (!printWindow) {
+    alert("Please allow popups to open the bill view.");
+    return;
+  }
+
+  printWindow.document.open();
+  printWindow.document.write(buildOrderBillPrintDocument(order));
+  printWindow.document.close();
+  printWindow.focus();
+}
+
+function buildSelectOption(value, label, currentValue) {
+  return `<option value="${escapeHTML(value)}" ${currentValue === value ? "selected" : ""}>${escapeHTML(label)}</option>`;
+}
+
+function buildOrderBillingControls(order = {}) {
+  if (!isDineInOrderCard(order)) {
+    return "";
+  }
+
+  const orderId = escapeHTML(order.id);
+  const billingStatus = String(order.billing_status || "not_billed").trim().toLowerCase();
+  const paymentStatus = String(order.payment_status || "unpaid").trim().toLowerCase();
+
+  return `
+    <div class="status-row admin-card-actions">
+      <select class="status-select order-billing-select" data-order-billing-field="billingStatus" data-id="${orderId}" aria-label="Billing status">
+        ${buildSelectOption("not_billed", "not billed", billingStatus)}
+        ${buildSelectOption("billed", "billed", billingStatus)}
+        ${buildSelectOption("cancelled", "billing cancelled", billingStatus)}
+      </select>
+      <select class="status-select order-billing-select" data-order-billing-field="paymentStatus" data-id="${orderId}" aria-label="Payment status">
+        ${buildSelectOption("unpaid", "unpaid", paymentStatus)}
+        ${buildSelectOption("customer_confirmed", getPaymentStatusLabel("customer_confirmed"), paymentStatus)}
+        ${buildSelectOption("paid", "paid", paymentStatus)}
+        ${buildSelectOption("refunded", "refunded", paymentStatus)}
+      </select>
+      <button class="status-btn" data-update-order-billing data-id="${orderId}">Update Billing</button>
+      <button class="status-btn" data-print-order-bill data-id="${orderId}">View Bill</button>
+    </div>
+  `;
+}
+
+function getOrderBillingSummaryCounts(orders = []) {
+  const dineInOrders = orders.filter(isDineInOrderCard);
+  const notBilled = dineInOrders.filter(
+    (order) => getOrderBillingStatus(order, true) === "not_billed"
+  );
+  const billedAndPaid = dineInOrders.filter(
+    (order) =>
+      getOrderBillingStatus(order, true) === "billed" &&
+      getOrderPaymentStatus(order, true) === "paid"
+  );
+  const billedNotPaid = dineInOrders.filter(
+    (order) =>
+      getOrderBillingStatus(order, true) === "billed" &&
+      getOrderPaymentStatus(order, true) !== "paid"
+  );
+  const needsPaymentVerification = dineInOrders.filter(
+    (order) => getOrderPaymentStatus(order, true) === "customer_confirmed"
+  );
+  const paidNotBilled = dineInOrders.filter(
+    (order) =>
+      getOrderPaymentStatus(order, true) === "paid" &&
+      getOrderBillingStatus(order, true) !== "billed"
+  );
+
+  return {
+    dineIn: dineInOrders.length,
+    notBilled: notBilled.length,
+    billedAndPaid: billedAndPaid.length,
+    billedNotPaid: billedNotPaid.length,
+    needsPaymentVerification: needsPaymentVerification.length,
+    paidNotBilled: paidNotBilled.length
+  };
+}
+
+function buildOrderBillingSummaryCard(orders = []) {
+  const counts = getOrderBillingSummaryCounts(orders);
+
+  if (!counts.dineIn) {
+    return "";
+  }
+
+  return `
+    <div class="admin-card admin-list-summary">
+      <h3>Dine-in Billing</h3>
+      <p class="admin-toolbar-help">Customer confirmed means verify before paid. Only mark paid after the operator confirms receipt.</p>
+      <div class="status-row">
+        <span class="status-badge">Dine-in: ${escapeHTML(counts.dineIn)}</span>
+        <span class="status-badge">Not billed: ${escapeHTML(counts.notBilled)}</span>
+        <span class="status-badge">Billed not paid: ${escapeHTML(counts.billedNotPaid)}</span>
+        <span class="status-badge">Verify UPI: ${escapeHTML(counts.needsPaymentVerification)}</span>
+        <span class="status-badge">Paid: ${escapeHTML(counts.billedAndPaid)}</span>
+        ${
+          counts.paidNotBilled
+            ? `<span class="status-badge">Paid not billed: ${escapeHTML(counts.paidNotBilled)}</span>`
+            : ""
+        }
+      </div>
+    </div>
+  `;
 }
 
 function renderOrders() {
@@ -1614,6 +2017,7 @@ function renderOrders() {
       count: state.orders.length,
       description: "Review incoming food orders and update their current status."
     })}
+    ${buildOrderBillingSummaryCard(state.orders)}
     <div class="admin-grid">
       ${state.orders
         .map(
@@ -1629,6 +2033,7 @@ function renderOrders() {
               ${buildOrderContextRows(order)}
               <div class="admin-row"><strong>Payment:</strong> ${escapeHTML(order.payment_method || "")}</div>
               ${buildOrderBillingRows(order)}
+              ${buildOrderBillingAttentionRow(order)}
               <div class="admin-row"><strong>Note:</strong> ${escapeHTML(order.note || "")}</div>
               <div class="admin-row"><strong>Total:</strong> ₹${escapeHTML(order.totals?.total ?? "")}</div>
               <div class="admin-row"><strong>Status:</strong> <span class="status-badge">${escapeHTML(order.status || "new")}</span></div>
@@ -1648,6 +2053,7 @@ function renderOrders() {
                 </select>
                 <button class="status-btn" data-update-status data-type="orders" data-id="${escapeHTML(order.id)}">Update Status</button>
               </div>
+              ${buildOrderBillingControls(order)}
             </article>
           `
         )
@@ -1842,6 +2248,29 @@ async function updateStatus(type, id, status) {
   });
 }
 
+async function updateOrderBilling(id, payload) {
+  await fetchJson(`${API_BASE}/orders/${id}/billing`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+function getBillingUpdateConfirmMessage(id, payload = {}) {
+  const billingStatus = String(payload.billingStatus || "").replace(/_/g, " ");
+  const paymentStatus = getPaymentStatusLabel(payload.paymentStatus);
+
+  return [
+    `Update billing for order ${id}?`,
+    `Billing Status: ${billingStatus || "not set"}`,
+    `Payment Status: ${paymentStatus || "not set"}`,
+    "",
+    "Only continue if the operator has confirmed this change."
+  ].join("\n");
+}
+
 function bindTabs() {
   const tabs = [...document.querySelectorAll(".admin-tab[data-tab]")];
   tabs.forEach((tab) => {
@@ -1947,6 +2376,64 @@ function bindStatusActions() {
       btn.disabled = false;
       btn.textContent = "Update Status";
     }
+  });
+
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-update-order-billing]");
+    if (!btn) return;
+
+    const { id } = btn.dataset;
+    const billingSelect = document.querySelector(
+      `.order-billing-select[data-order-billing-field="billingStatus"][data-id="${id}"]`
+    );
+    const paymentSelect = document.querySelector(
+      `.order-billing-select[data-order-billing-field="paymentStatus"][data-id="${id}"]`
+    );
+
+    if (!billingSelect || !paymentSelect) return;
+
+    const nextBillingStatus = billingSelect.value;
+    const nextPaymentStatus = paymentSelect.value;
+    const confirmed = window.confirm(
+      getBillingUpdateConfirmMessage(id, {
+        billingStatus: nextBillingStatus,
+        paymentStatus: nextPaymentStatus
+      })
+    );
+
+    if (!confirmed) return;
+
+    try {
+      btn.disabled = true;
+      btn.textContent = "Updating...";
+
+      await updateOrderBilling(id, {
+        billingStatus: nextBillingStatus,
+        paymentStatus: nextPaymentStatus
+      });
+      await loadTabData();
+    } catch (error) {
+      console.error("Billing update failed:", error);
+      alert("Failed to update billing");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Update Billing";
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-print-order-bill]");
+    if (!btn) return;
+
+    const { id } = btn.dataset;
+    const order = state.orders.find((item) => String(item.id) === String(id));
+
+    if (!order) {
+      alert("Order not found in the current dashboard list.");
+      return;
+    }
+
+    openOrderBillPrintView(order);
   });
 }
 
